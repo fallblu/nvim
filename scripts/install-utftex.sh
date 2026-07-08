@@ -11,7 +11,7 @@ set -euo pipefail
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-git clone --depth 1 https://github.com/bartp5/libtexprintf.git "$WORKDIR/libtexprintf"
+git clone --depth 1 --branch v1.31 https://github.com/bartp5/libtexprintf.git "$WORKDIR/libtexprintf"
 cd "$WORKDIR/libtexprintf"
 
 ./autogen.sh
