@@ -4,9 +4,10 @@
 
 vim.diagnostic.enable(false)
 
+vim.opt.wrap = true
 vim.opt.scrolloff = 8
 vim.opt.sidescrolloff = 8
-vim.opt.colorcolumn = "100"
+-- vim.opt.colorcolumn = "100"
 
 vim.opt.mouse = ""
 vim.opt.clipboard = "unnamedplus"
