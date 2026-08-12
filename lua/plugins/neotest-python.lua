@@ -10,8 +10,6 @@ return {
       adapters = {
         ["neotest-python"] = {
           runner = "pytest",
-          -- Set to true if you want to step into stdlib/3rd-party during debug.
-          dap = { justMyCode = false },
         },
       },
     },

@@ -1,6 +1,6 @@
 -- Python-specific overrides on top of `lazyvim.plugins.extras.lang.python`.
 -- The extra already wires pyright + ruff LSP, conform ruff_format on save,
--- venv-selector, and nvim-dap-python. We only add what's missing or different.
+-- and venv-selector. We only add what's missing or different.
 
 return {
   -- Make pyright defer linting/import-sorting to ruff and run only type checks.
@@ -28,7 +28,7 @@ return {
   -- Mason: make sure the tools are installed even outside a project venv.
   {
     "mason-org/mason.nvim",
-    opts = { ensure_installed = { "pyright", "ruff", "debugpy" } },
+    opts = { ensure_installed = { "pyright", "ruff" } },
   },
 
   -- venv-selector: a manual override picker. Auto-detection of `.venv` at

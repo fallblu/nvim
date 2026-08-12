@@ -55,13 +55,10 @@ return {
       },
       {
         "<leader>;l",
-        snacks_term(
-          { "uv", "run", "pytest", "--no-cov", "-m", "live", "-s", "tests/live" },
-          {
-            env = { PERSISTRA_RUN_LIVE = "1" },
-            win = { position = "bottom", height = 0.4 },
-          }
-        ),
+        snacks_term({ "uv", "run", "pytest", "--no-cov", "-m", "live", "-s", "tests/live" }, {
+          env = { PERSISTRA_RUN_LIVE = "1" },
+          win = { position = "bottom", height = 0.4 },
+        }),
         desc = "pytest (run live suite)",
       },
     },
