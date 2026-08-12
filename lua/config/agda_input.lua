@@ -76,24 +76,22 @@ function M.commit()
   vim.api.nvim_win_set_cursor(0, { row + 1, cursor_col })
 end
 
-function M.setup()
-  vim.cmd.runtime("autoload/agda.vim")
+function M.register(sequence, glyph)
+  local normalized = normalize_sequence(sequence)
+  local existing = glyphs[normalized]
 
-  for sequence, glyph in pairs(vim.g["agda#glyphs"]) do
-    local normalized = normalize_sequence(sequence)
-    local existing = glyphs[normalized]
-
-    if existing and existing ~= glyph then
-      error(("Conflicting Agda input sequence: %s"):format(normalized))
-    end
-
-    glyphs[normalized] = glyph
+  if existing and existing ~= glyph then
+    error(("Conflicting Agda input sequence: %s"):format(normalized))
   end
 
+  glyphs[normalized] = glyph
+end
+
+function M.setup()
   local group = vim.api.nvim_create_augroup("agda_committed_input", { clear = true })
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
-    pattern = "agda",
+    pattern = { "agda", "lagda", "lagda.md", "lagda.rst", "lagda.tex" },
     callback = function(event)
       local tab_mapping = vim.fn.maparg("<Tab>", "i", false, true)
 
