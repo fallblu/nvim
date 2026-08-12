@@ -27,7 +27,7 @@ local function hide_completion()
   end
 end
 
-function M.expansion_before_cursor(line, byte_col)
+local function expansion_before_cursor(line, byte_col)
   local prefix = line:sub(1, byte_col)
   local slash
 
@@ -48,8 +48,32 @@ function M.expansion_before_cursor(line, byte_col)
     return nil
   end
 
-  local input = prefix:sub(slash)
-  return string.rep("<BS>", vim.fn.strchars(input)) .. glyph
+  local text, move_left = glyph:gsub("<left>$", "")
+  return {
+    start_col = slash - 1,
+    end_col = byte_col,
+    text = text,
+    move_left = move_left == 1,
+  }
+end
+
+function M.commit()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local row = cursor[1] - 1
+  local line = vim.api.nvim_get_current_line()
+  local expansion = expansion_before_cursor(line, cursor[2])
+  if not expansion then
+    return
+  end
+
+  vim.api.nvim_buf_set_text(0, row, expansion.start_col, row, expansion.end_col, { expansion.text })
+
+  local cursor_col = expansion.start_col + #expansion.text
+  if expansion.move_left then
+    local character_count = vim.fn.strchars(expansion.text)
+    cursor_col = expansion.start_col + vim.fn.byteidx(expansion.text, character_count - 1)
+  end
+  vim.api.nvim_win_set_cursor(0, { row + 1, cursor_col })
 end
 
 function M.setup()
@@ -76,10 +100,10 @@ function M.setup()
       vim.keymap.set("i", "<Tab>", function()
         local cursor = vim.api.nvim_win_get_cursor(0)
         local line = vim.api.nvim_get_current_line()
-        local expansion = M.expansion_before_cursor(line, cursor[2])
+        local expansion = expansion_before_cursor(line, cursor[2])
         if expansion then
           hide_completion()
-          return expansion
+          return "<Cmd>lua require('config.agda_input').commit()<CR>"
         end
 
         return fallback_tab(tab_mapping)
