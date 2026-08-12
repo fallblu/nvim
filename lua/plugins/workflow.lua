@@ -2,6 +2,19 @@ return {
   -- Open buffers are destinations, not a sequence to cycle through.
   { "akinsho/bufferline.nvim", enabled = false },
 
+  -- LazyVim selects an explorer by default, so explicitly neutralize its
+  -- Snacks fallback while retaining Snacks for pickers and terminals.
+  {
+    "folke/snacks.nvim",
+    opts = { explorer = { enabled = false } },
+    keys = {
+      { "<leader>fe", false },
+      { "<leader>fE", false },
+      { "<leader>e", false },
+      { "<leader>E", false },
+    },
+  },
+
   -- Tests run through neotest or an embedded terminal; no debug adapter UI.
   { "mfussenegger/nvim-dap", enabled = false },
   { "mfussenegger/nvim-dap-python", enabled = false },
