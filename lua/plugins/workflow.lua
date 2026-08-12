@@ -29,4 +29,25 @@ return {
       },
     },
   },
+
+  {
+    "neovim/nvim-lspconfig",
+    opts = {
+      diagnostics = {
+        update_in_insert = false,
+        severity_sort = true,
+        virtual_lines = false,
+        virtual_text = {
+          current_line = true,
+          severity = { min = vim.diagnostic.severity.WARN },
+          spacing = 2,
+          source = "if_many",
+          prefix = "●",
+        },
+        underline = {
+          severity = { min = vim.diagnostic.severity.WARN },
+        },
+      },
+    },
+  },
 }

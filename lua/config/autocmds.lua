@@ -7,8 +7,6 @@
 -- Or remove existing autocmds by their group name (which is prefixed with `lazyvim_` for the defaults)
 -- e.g. vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
 
-vim.api.nvim_del_augroup_by_name("lazyvim_wrap_spell")
-
 local augroup = vim.api.nvim_create_augroup("garrett_python", { clear = true })
 
 vim.api.nvim_create_autocmd("FileType", {
@@ -19,5 +17,17 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.foldexpr = "v:lua.vim.treesitter.foldexpr()"
     vim.opt_local.foldlevel = 99
     vim.opt_local.foldlevelstart = 99
+  end,
+})
+
+local spell_group = vim.api.nvim_create_augroup("garrett_code_spell", { clear = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+  group = spell_group,
+  pattern = { "python", "agda", "lagda", "lagda.md", "lagda.rst", "lagda.tex" },
+  callback = function()
+    -- Treesitter limits spell-checking to captures such as comments and
+    -- Python docstrings, leaving identifiers and ordinary strings alone.
+    vim.opt_local.spell = true
   end,
 })
