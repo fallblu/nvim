@@ -2,6 +2,21 @@ local M = {}
 
 local agda_filetypes = { "agda", "lagda", "lagda.md", "lagda.rst", "lagda.tex" }
 
+-- Agda 2.8 adopted GNU-style locations (`file:line.column`) while older
+-- releases used commas. Keep both forms so compile output remains navigable
+-- when working in projects pinned to either generation.
+M.errorformat = table.concat({
+  "%f:%l.%c-%e.%k: %t%*[^:]: %m",
+  "%f:%l.%c-%e: %t%*[^:]: %m",
+  "%f:%l.%c: %t%*[^:]: %m",
+  "%f:%l: %t%*[^:]: %m",
+  "%f:%l\\,%c-%e\\,%k: %t%*[^:]: %m",
+  "%f:%l\\,%c: %t%*[^:]: %m",
+  "%f:%l\\,%c-%e\\,%k:%m",
+  "%f:%l\\,%c:%m",
+  "%m",
+}, ",")
+
 local function command(name)
   return function()
     vim.cmd(name)
@@ -36,7 +51,7 @@ local function compile(run_after)
       vim.fn.setqflist({}, " ", {
         title = "Agda compile",
         lines = lines,
-        efm = "%f:%l,%c-%*\\d:%m,%f:%l,%c:%m,%f:%l:%c:%m,%m",
+        efm = M.errorformat,
       })
 
       if result.code ~= 0 then
