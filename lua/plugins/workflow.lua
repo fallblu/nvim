@@ -63,4 +63,14 @@ return {
       },
     },
   },
+
+  -- Accept completion explicitly with <C-y>; <Enter> always inserts a newline.
+  {
+    "saghen/blink.cmp",
+    opts = {
+      keymap = {
+        ["<CR>"] = { "fallback" },
+      },
+    },
+  },
 }

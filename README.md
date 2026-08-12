@@ -58,3 +58,32 @@ Neotest uses `<leader>tr` for the nearest test, `<leader>tt` for the current
 file, and `<leader>tl` for the last run. `<C-/>` toggles the primary terminal;
 the `<leader>;` group contains split terminals, pytest, the Python REPL, and
 Lazygit.
+
+## Agda
+
+Completion is explicit: `<Enter>` always inserts a newline and `<C-y>` accepts
+the selected completion. In an Agda buffer, `<C-Space>` opens a searchable
+Unicode reference in both Normal and Insert mode. Entries show their complete
+input sequence, so `∷`, for example, is `\::<Tab>`. Choosing an entry inserts
+it and leaves the buffer in Insert mode. `:AgdaUnicode` opens the same picker.
+
+Use `<C-j>` / `<C-k>` from either Normal or Insert mode to jump to the next or
+previous goal, center it, and continue in Insert mode. `[g` / `]g` provide
+centered Normal-mode navigation without changing modes. `<localleader>p` or
+`:AgdaActions` opens a searchable list of every configured Cornelis action.
+
+The most common direct actions use `<localleader>` (backslash by default):
+
+| Goal | Key |
+| --- | --- |
+| Load and type-check | `<localleader>l` |
+| Give / refine / elaborate | `<localleader>g` / `<localleader>r` / `<localleader>e` |
+| Case split / auto / solve | `<localleader>c` / `<localleader>a` / `<localleader>s` |
+| Type and context / infer type | `<localleader>t` / `<localleader>i` |
+| Normalize | `<localleader>n` |
+| Show all goals | `<localleader>?` |
+| Expand `?` into a goal | `<localleader>q` |
+| Abort / restart Cornelis | `<localleader>A` / `<localleader>R` |
+| Compile / compile and run | `<localleader>b` / `<localleader>x` |
+
+Files continue to load and type-check automatically after each save.
