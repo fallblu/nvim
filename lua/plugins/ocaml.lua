@@ -21,6 +21,7 @@ return {
           mly = "menhir",
         },
       })
+      require("config.ocaml_workflow").setup()
     end,
     opts = {
       servers = {
