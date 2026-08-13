@@ -82,8 +82,10 @@ can still be formatted.
 Run `<localleader>w` early in a project to start `dune build --watch`. The
 persistent terminal can be hidden with the same key from either Terminal or
 Terminal-Normal mode, then reopened from an OCaml buffer. Its Dune RPC session
-gives ocamllsp fresher build information. The OCaml actions use `<localleader>`
-(backslash by default):
+gives ocamllsp fresher build information. Watch builds use a project-specific
+directory under Neovim's cache so the project's `_build` directory remains
+available to commands in other terminals. The OCaml actions use
+`<localleader>` (backslash by default):
 
 | Goal | Key |
 | --- | --- |
@@ -100,8 +102,9 @@ Inside a Dune project, the REPL runs `dune utop`; elsewhere it runs plain
 `utop`. Sending a phrase uses the top-level Tree-sitter node under the cursor,
 and sending a file saves it before evaluating it with `#use`. UTop terminals are
 persistent and separate for each project. Project REPL builds use a dedicated
-directory under Neovim's cache, so they can run while `dune build --watch` owns
-the project's `_build` directory. Exiting UTop closes its terminal automatically.
+directory under Neovim's cache, so they can run independently of the watcher
+and commands using the project's `_build` directory. Exiting UTop closes its
+terminal automatically.
 The REPL opens in a right split and redraws after resizing. Hiding the terminal
 with `q` or `<localleader>r` keeps the REPL running; deleting the terminal buffer
 stops it.

@@ -14,6 +14,13 @@ local function current_path(buffer)
   return vim.api.nvim_buf_get_name(buffer or 0)
 end
 
+local function cache_build_dir(name, root)
+  local cache = vim.fs.joinpath(vim.fn.stdpath("cache"), name)
+  vim.fn.mkdir(cache, "p")
+  local project_key = vim.fn.sha256(vim.fs.normalize(root)):sub(1, 16)
+  return vim.fs.joinpath(cache, project_key)
+end
+
 local function dune_root(buffer)
   local path = current_path(buffer)
   local root = ocaml.root(path)
@@ -62,7 +69,9 @@ function M.build(arguments)
 end
 
 function M.watch()
-  run_dune({ "build", "--watch" }, true, {
+  local root = ocaml.root(current_path())
+  local build_dir = cache_build_dir("ocaml-watch", root)
+  run_dune({ "build", "--watch", "--build-dir", build_dir }, true, {
     position = terminal_window.position,
     height = terminal_window.height,
     keys = {
@@ -151,9 +160,7 @@ local function repl_spec(buffer)
   local root = ocaml.root(current_path(buffer))
   local command
   if ocaml.is_dune_project(root) then
-    local cache = vim.fs.joinpath(vim.fn.stdpath("cache"), "ocaml-utop")
-    vim.fn.mkdir(cache, "p")
-    local build_dir = vim.fs.joinpath(cache, vim.fn.sha256(vim.fs.normalize(root)))
+    local build_dir = cache_build_dir("ocaml-utop", root)
     command = ocaml.opam_command("dune", { "utop", "--build-dir", build_dir }, root)
   else
     command = ocaml.opam_command("utop", nil, root)
