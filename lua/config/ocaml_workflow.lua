@@ -1,6 +1,7 @@
 local M = {}
 
 local ocaml = require("config.ocaml")
+local uv = vim.uv or vim.loop
 
 local terminal_window = { position = "bottom", height = 0.4 }
 
@@ -149,7 +150,10 @@ local function repl_spec(buffer)
   local root = ocaml.root(current_path(buffer))
   local command
   if ocaml.is_dune_project(root) then
-    command = ocaml.opam_command("dune", { "utop" }, root)
+    local cache = vim.fs.joinpath(vim.fn.stdpath("cache"), "ocaml-utop")
+    vim.fn.mkdir(cache, "p")
+    local build_dir = vim.fs.joinpath(cache, vim.fn.sha256(vim.fs.normalize(root)))
+    command = ocaml.opam_command("dune", { "utop", "--build-dir", build_dir }, root)
   else
     command = ocaml.opam_command("utop", nil, root)
   end
@@ -158,9 +162,50 @@ local function repl_spec(buffer)
       cwd = root,
       interactive = false,
       auto_close = false,
-      win = terminal_window,
+      win = vim.tbl_extend("force", terminal_window, {
+        on_buf = function(terminal)
+          terminal:on("TermOpen", function()
+            local channel = vim.bo[terminal.buf].channel
+            terminal.ocaml_repl_pid = channel > 0 and vim.fn.jobpid(channel) or nil
+            terminal.ocaml_repl_stopping = false
+          end, { buf = true })
+          terminal:on("TermClose", function()
+            terminal.ocaml_repl_pid = nil
+            if terminal.ocaml_repl_stopping then
+              return
+            end
+            if vim.v.event.status == 0 then
+              terminal:close()
+              vim.cmd.checktime()
+            else
+              local status = vim.v.event.status
+              vim.schedule(function()
+                if terminal:buf_valid() and not terminal.ocaml_repl_stopping then
+                  notify(("UTop exited with code %d; check the terminal output"):format(status), vim.log.levels.ERROR)
+                end
+              end)
+            end
+          end, { buf = true })
+          terminal:on("BufUnload", function()
+            local pid = terminal.ocaml_repl_pid
+            terminal.ocaml_repl_pid = nil
+            terminal.ocaml_repl_stopping = true
+            if pid then
+              pcall(uv.kill, pid, "sigterm")
+            end
+          end, { buf = true })
+        end,
+      }),
     },
     root
+end
+
+local function repl_running(terminal)
+  if not terminal or not terminal:buf_valid() then
+    return false
+  end
+  local channel = vim.bo[terminal.buf].channel
+  return channel > 0 and vim.fn.jobwait({ channel }, 0)[1] == -1
 end
 
 local function get_repl(buffer, create)
@@ -173,21 +218,30 @@ local function get_repl(buffer, create)
   end
 
   opts.create = create
-  local terminal = require("snacks").terminal.get(command, opts)
-  return terminal
+  local terminal, created = require("snacks").terminal.get(command, opts)
+  if terminal and not created and not repl_running(terminal) then
+    terminal:close()
+    terminal = nil
+  end
+  if not terminal and create then
+    terminal, created = require("snacks").terminal.get(command, opts)
+  end
+  return terminal, created
 end
 
 function M.toggle_repl()
   local buffer = vim.api.nvim_get_current_buf()
-  local command, opts, root = repl_spec(buffer)
-  if not tool_available("utop", root) or (ocaml.is_dune_project(root) and not tool_available("dune", root)) then
+  local terminal, created = get_repl(buffer, true)
+  if not terminal then
     return
   end
 
-  local terminal = require("snacks").terminal.focus(command, opts)
-  if terminal and vim.api.nvim_get_current_buf() == terminal.buf then
-    vim.cmd.startinsert()
+  if not created and vim.api.nvim_get_current_buf() == terminal.buf then
+    terminal:hide()
+    return
   end
+  terminal:show():focus()
+  vim.cmd.startinsert()
 end
 
 local function send_to_repl(text, buffer)

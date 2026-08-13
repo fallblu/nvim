@@ -99,7 +99,11 @@ gives ocamllsp fresher build information. The OCaml actions use `<localleader>`
 Inside a Dune project, the REPL runs `dune utop`; elsewhere it runs plain
 `utop`. Sending a phrase uses the top-level Tree-sitter node under the cursor,
 and sending a file saves it before evaluating it with `#use`. UTop terminals are
-persistent and separate for each project.
+persistent and separate for each project. Project REPL builds use a dedicated
+directory under Neovim's cache, so they can run while `dune build --watch` owns
+the project's `_build` directory. Exiting UTop closes its terminal automatically.
+Hiding the terminal with `q` or `<localleader>r` keeps the REPL running; deleting
+the terminal buffer stops it.
 
 The same actions are available as commands: `:OcamlActions`, `:OcamlBuild`,
 `:OcamlWatch`, `:OcamlTest`, `:OcamlExec`, `:OcamlDocs`, `:OcamlUtop`,
