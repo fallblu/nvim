@@ -4,6 +4,7 @@ local ocaml = require("config.ocaml")
 local uv = vim.uv or vim.loop
 
 local terminal_window = { position = "bottom", height = 0.4 }
+local repl_window = { position = "right", width = 0.4 }
 
 local function notify(message, level)
   vim.notify(message, level or vim.log.levels.INFO, { title = "OCaml" })
@@ -161,8 +162,9 @@ local function repl_spec(buffer)
     {
       cwd = root,
       interactive = false,
+      auto_insert = true,
       auto_close = false,
-      win = vim.tbl_extend("force", terminal_window, {
+      win = vim.tbl_extend("force", repl_window, {
         on_buf = function(terminal)
           terminal:on("TermOpen", function()
             local channel = vim.bo[terminal.buf].channel
@@ -194,6 +196,20 @@ local function repl_spec(buffer)
               pcall(uv.kill, pid, "sigterm")
             end
           end, { buf = true })
+          terminal:on("WinResized", function()
+            -- Lambda-Term binds Ctrl-L to Clear_screen; wait for the resize drag to settle.
+            terminal.ocaml_repl_resize = (terminal.ocaml_repl_resize or 0) + 1
+            local resize = terminal.ocaml_repl_resize
+            vim.defer_fn(function()
+              if resize ~= terminal.ocaml_repl_resize or not terminal:buf_valid() then
+                return
+              end
+              local channel = vim.bo[terminal.buf].channel
+              if channel > 0 and vim.fn.jobwait({ channel }, 0)[1] == -1 then
+                vim.api.nvim_chan_send(channel, "\f")
+              end
+            end, 100)
+          end, { win = true })
         end,
       }),
     },
