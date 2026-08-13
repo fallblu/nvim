@@ -57,7 +57,9 @@ suggestions, and `zg` to accept a word.
 Neotest uses `<leader>tr` for the nearest test, `<leader>tt` for the current
 file, and `<leader>tl` for the last run. `<C-/>` toggles the primary terminal;
 the `<leader>;` group contains split terminals, pytest, the Python REPL, and
-Lazygit.
+Lazygit. Inside a terminal, `<Esc>` enters Terminal-Normal mode, where `q`
+hides the terminal and `<leader>,` opens the buffer picker. `<C-h>`, `<C-j>`,
+`<C-k>`, and `<C-l>` move directly between split windows from Terminal mode.
 
 ## OCaml
 
@@ -78,9 +80,10 @@ files. Project `.ocamlformat` files are honored, while standalone learning files
 can still be formatted.
 
 Run `<localleader>w` early in a project to start `dune build --watch`. The
-persistent terminal can be hidden and reopened with the same key, and its Dune
-RPC session gives ocamllsp fresher build information. The OCaml actions use
-`<localleader>` (backslash by default):
+persistent terminal can be hidden with the same key from either Terminal or
+Terminal-Normal mode, then reopened from an OCaml buffer. Its Dune RPC session
+gives ocamllsp fresher build information. The OCaml actions use `<localleader>`
+(backslash by default):
 
 | Goal | Key |
 | --- | --- |

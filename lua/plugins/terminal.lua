@@ -1,7 +1,7 @@
 -- Terminal keymaps backed by snacks.nvim (already loaded by LazyVim).
 --
 -- Layout:
---   <C-/>          toggle float terminal (works in both normal and terminal mode)
+--   <C-/>          toggle the project-root terminal (provided by LazyVim)
 --   <leader>;<x>   terminal-group prefix (chosen to avoid colliding with
 --                  <leader>t* which the test extra owns)
 --
@@ -17,12 +17,27 @@ end
 return {
   {
     "folke/snacks.nvim",
+    opts = {
+      terminal = {
+        win = {
+          keys = {
+            -- Snacks defaults to a double escape. A single escape makes the
+            -- normal-mode window and buffer mappings immediately available.
+            term_normal = {
+              "<Esc>",
+              function()
+                vim.cmd.stopinsert()
+              end,
+              mode = "t",
+              desc = "Enter Terminal-Normal mode",
+            },
+          },
+        },
+      },
+    },
     keys = {
-      { "<C-/>", snacks_term(), mode = { "n", "t" }, desc = "Toggle terminal" },
-      { "<C-_>", snacks_term(), mode = { "n", "t" }, desc = "Toggle terminal (alt)" },
-
       { "<leader>;", "", desc = "+terminal" },
-      { "<leader>;t", snacks_term(), desc = "Terminal (float)" },
+      { "<leader>;t", snacks_term(nil, { win = { position = "float" } }), desc = "Terminal (float)" },
       {
         "<leader>;s",
         snacks_term(nil, { win = { position = "bottom", height = 0.4 } }),

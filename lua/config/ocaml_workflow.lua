@@ -37,20 +37,20 @@ local function tool_available(tool, root)
   return false
 end
 
-local function open_terminal(command, root, persistent)
+local function open_terminal(command, root, persistent, window)
   require("snacks").terminal(command, {
     cwd = root,
     auto_close = not persistent,
-    win = terminal_window,
+    win = window or terminal_window,
   })
 end
 
-local function run_dune(arguments, persistent)
+local function run_dune(arguments, persistent, window)
   local root = dune_root()
   if not root or not tool_available("dune", root) then
     return
   end
-  open_terminal(ocaml.opam_command("dune", arguments, root), root, persistent)
+  open_terminal(ocaml.opam_command("dune", arguments, root), root, persistent, window)
 end
 
 function M.build(arguments)
@@ -60,7 +60,18 @@ function M.build(arguments)
 end
 
 function M.watch()
-  run_dune({ "build", "--watch" }, true)
+  run_dune({ "build", "--watch" }, true, {
+    position = terminal_window.position,
+    height = terminal_window.height,
+    keys = {
+      hide_watch = {
+        "<localleader>w",
+        "hide",
+        mode = { "n", "t" },
+        desc = "Hide Dune build watch",
+      },
+    },
+  })
 end
 
 function M.test(arguments)
