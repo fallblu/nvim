@@ -1,8 +1,8 @@
 # Neovim workflow
 
-This is a focused LazyVim configuration for Python, Agda, pytest, and embedded
-terminals. Navigation is picker-first, and Hardtime applies training constraints
-that favor direct motions and operator-first edits.
+This is a focused LazyVim configuration for Python, OCaml, Agda, pytest, and
+embedded terminals. Navigation is picker-first, and Hardtime applies training
+constraints that favor direct motions and operator-first edits.
 
 ## Navigate directly
 
@@ -58,6 +58,51 @@ Neotest uses `<leader>tr` for the nearest test, `<leader>tt` for the current
 file, and `<leader>tl` for the last run. `<C-/>` toggles the primary terminal;
 the `<leader>;` group contains split terminals, pytest, the Python REPL, and
 Lazygit.
+
+## OCaml
+
+OCaml tools are resolved through OPAM rather than Mason. The active global
+switch is used by default. If an `_opam` directory is found above the current
+project, that project-local switch is selected automatically. Install the
+editor and workflow tools in every switch used for development:
+
+```sh
+opam install dune ocaml-lsp-server ocamlformat odoc utop
+```
+
+OCaml LSP supplies completion, navigation, diagnostics, code actions, semantic
+highlighting, and signature help. `<localleader>i` switches between a `.ml`
+implementation and its `.mli` interface. OCamlFormat runs on save for OCaml,
+interface, OCamllex, and Menhir files; `dune format-dune-file` formats Dune
+files. Project `.ocamlformat` files are honored, while standalone learning files
+can still be formatted.
+
+Run `<localleader>w` early in a project to start `dune build --watch`. The
+persistent terminal can be hidden and reopened with the same key, and its Dune
+RPC session gives ocamllsp fresher build information. The OCaml actions use
+`<localleader>` (backslash by default):
+
+| Goal | Key |
+| --- | --- |
+| Search all OCaml actions | `<localleader>a` |
+| Build / toggle build watch | `<localleader>b` / `<localleader>w` |
+| Run tests / an executable | `<localleader>t` / `<localleader>x` |
+| Build and offer to open odoc documentation | `<localleader>d` |
+| Toggle the project UTop | `<localleader>r` |
+| Send phrase / visual selection | `<localleader>s` |
+| Send line / saved file | `<localleader>l` / `<localleader>f` |
+| Switch implementation/interface | `<localleader>i` |
+
+Inside a Dune project, the REPL runs `dune utop`; elsewhere it runs plain
+`utop`. Sending a phrase uses the top-level Tree-sitter node under the cursor,
+and sending a file saves it before evaluating it with `#use`. UTop terminals are
+persistent and separate for each project.
+
+The same actions are available as commands: `:OcamlActions`, `:OcamlBuild`,
+`:OcamlWatch`, `:OcamlTest`, `:OcamlExec`, `:OcamlDocs`, `:OcamlUtop`,
+`:OcamlSendPhrase`, `:OcamlSendLine`, `:OcamlSendFile`, and
+`:OcamlSwitchImplIntf`. `:OcamlBuild`, `:OcamlTest`, and `:OcamlExec` accept
+optional arguments; invoking `:OcamlExec` without arguments opens a prompt.
 
 ## Agda
 
