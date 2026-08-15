@@ -29,10 +29,17 @@ return {
         ocamllsp = {
           mason = false,
           filetypes = { "ocaml", "ocamlinterface", "ocamllex", "menhir", "reason", "dune" },
-          cmd = function(dispatchers)
-            local root = ocaml.root(vim.api.nvim_buf_get_name(0))
+          root_dir = function(bufnr, on_dir)
+            on_dir(ocaml.root(vim.api.nvim_buf_get_name(bufnr)))
+          end,
+          cmd = function(dispatchers, config)
+            local root = config.root_dir or config.cmd_cwd or ocaml.root()
             local command = ocaml.opam_command("ocamllsp", nil, root)
-            return vim.lsp.rpc.start(command, dispatchers, { cwd = root })
+            return vim.lsp.rpc.start(command, dispatchers, {
+              cwd = root,
+              env = config.cmd_env,
+              detached = config.detached,
+            })
           end,
         },
       },

@@ -5,6 +5,7 @@ local uv = vim.uv or vim.loop
 
 local cache = {}
 local failures = {}
+local commands = {}
 
 local filetypes = { "ocaml", "ocamlinterface" }
 local indent_keys = {
@@ -47,16 +48,37 @@ end
 local function command_for(buffer)
   local filename = vim.api.nvim_buf_get_name(buffer)
   local root = ocaml.root(filename)
+  if commands[root] then
+    return vim.deepcopy(commands[root]), root
+  end
   local switch = ocaml.local_switch(root)
 
   if switch then
     local executable = vim.fs.joinpath(switch, "_opam", "bin", "ocp-indent")
     if uv.fs_stat(executable) then
-      return { executable }, root
+      commands[root] = { executable }
+      return vim.deepcopy(commands[root]), root
     end
   end
 
-  return ocaml.opam_command("ocp-indent", nil, root), root
+  commands[root] = ocaml.opam_command("ocp-indent", nil, root)
+  return vim.deepcopy(commands[root]), root
+end
+
+local function configure_indentkeys(buffer)
+  local value = vim.api.nvim_get_option_value("indentkeys", { buf = buffer })
+  local existing = {}
+  for key in value:gmatch("[^,]+") do
+    existing[key] = true
+  end
+
+  local keys = value == "" and {} or { value }
+  for _, key in ipairs(indent_keys) do
+    if not existing[key] then
+      keys[#keys + 1] = key
+    end
+  end
+  vim.api.nvim_set_option_value("indentkeys", table.concat(keys, ","), { buf = buffer })
 end
 
 ---@return integer
@@ -126,10 +148,7 @@ function M.setup()
       vim.bo[event.buf].smartindent = false
       vim.bo[event.buf].softtabstop = 2
       vim.bo[event.buf].indentexpr = "v:lua.require'config.ocaml_indent'.get()"
-
-      for _, key in ipairs(indent_keys) do
-        vim.opt_local.indentkeys:append(key)
-      end
+      configure_indentkeys(event.buf)
     end,
   })
 
@@ -138,8 +157,15 @@ function M.setup()
     callback = function(event)
       cache[event.buf] = nil
       failures[event.buf] = nil
+      commands = {}
     end,
   })
+end
+
+function M.clear_cache()
+  cache = {}
+  failures = {}
+  commands = {}
 end
 
 return M

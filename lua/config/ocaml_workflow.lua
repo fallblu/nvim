@@ -1,10 +1,13 @@
 local M = {}
 
 local ocaml = require("config.ocaml")
+local ocaml_cache = require("config.ocaml_cache")
+local ocaml_output = require("config.ocaml_output")
 local uv = vim.uv or vim.loop
 
 local terminal_window = { position = "bottom", height = 0.4 }
 local repl_window = { position = "bottom", height = 0.4 }
+local async_jobs = {}
 
 local function notify(message, level)
   vim.notify(message, level or vim.log.levels.INFO, { title = "OCaml" })
@@ -12,13 +15,6 @@ end
 
 local function current_path(buffer)
   return vim.api.nvim_buf_get_name(buffer or 0)
-end
-
-local function cache_build_dir(name, root)
-  local cache = vim.fs.joinpath(vim.fn.stdpath("cache"), name)
-  vim.fn.mkdir(cache, "p")
-  local project_key = vim.fn.sha256(vim.fs.normalize(root)):sub(1, 16)
-  return vim.fs.joinpath(cache, project_key)
 end
 
 local function dune_root(buffer)
@@ -32,18 +28,80 @@ local function dune_root(buffer)
 end
 
 local function tool_available(tool, root)
-  local result = vim.system(ocaml.opam_command("which", { tool }, root), { cwd = root, text = true }):wait(3000)
-  if result.code == 0 then
+  local available, location = ocaml.tool_available(tool, root)
+  if available then
     return true
   end
 
-  local switch = ocaml.local_switch(root)
-  local location = switch and ("the local switch at " .. switch) or "the active OPAM switch"
   notify(
     ("%s is unavailable in %s; install it with `opam install %s`"):format(tool, location, tool),
     vim.log.levels.ERROR
   )
   return false
+end
+
+local function channel_running(channel)
+  if not channel or channel <= 0 then
+    return false
+  end
+  local ok, status = pcall(vim.fn.jobwait, { channel }, 0)
+  return ok and status[1] == -1
+end
+
+local function stop_terminal_job(terminal, cleanup_rpc)
+  local channel = terminal.ocaml_channel or (terminal:buf_valid() and vim.bo[terminal.buf].channel or nil)
+  terminal.ocaml_stopping = true
+  if not channel_running(channel) then
+    if cleanup_rpc then
+      ocaml_cache.cleanup_rpc_registry()
+    end
+    return
+  end
+
+  -- jobstop sends SIGTERM through Neovim's job controller and closes the PTY.
+  -- Unlike a raw PID signal, it also accounts for the process attached to the
+  -- terminal channel and lets buffer deletion complete synchronously.
+  pcall(vim.fn.jobstop, channel)
+  vim.defer_fn(function()
+    if cleanup_rpc then
+      ocaml_cache.cleanup_rpc_registry()
+    end
+  end, 100)
+end
+
+local function attach_terminal_lifecycle(terminal, cleanup_rpc)
+  terminal:on("TermOpen", function()
+    terminal.ocaml_channel = vim.bo[terminal.buf].channel
+    terminal.ocaml_stopping = false
+  end, { buf = true })
+  terminal:on("TermClose", function()
+    terminal.ocaml_channel = nil
+    if cleanup_rpc then
+      vim.schedule(ocaml_cache.cleanup_rpc_registry)
+    end
+  end, { buf = true })
+  terminal:on("BufUnload", function()
+    stop_terminal_job(terminal, cleanup_rpc)
+  end, { buf = true })
+end
+
+local function run_async(key, command, opts, callback)
+  local previous = async_jobs[key]
+  if previous then
+    pcall(previous.kill, previous, 15)
+  end
+
+  local process
+  process = vim.system(command, opts, function(result)
+    vim.schedule(function()
+      if async_jobs[key] ~= process then
+        return
+      end
+      async_jobs[key] = nil
+      callback(result)
+    end)
+  end)
+  async_jobs[key] = process
 end
 
 local function open_terminal(command, root, persistent, window)
@@ -54,8 +112,8 @@ local function open_terminal(command, root, persistent, window)
   })
 end
 
-local function run_dune(arguments, persistent, window)
-  local root = dune_root()
+local function run_dune(arguments, persistent, window, root)
+  root = root or dune_root()
   if not root or not tool_available("dune", root) then
     return
   end
@@ -69,11 +127,17 @@ function M.build(arguments)
 end
 
 function M.watch()
-  local root = ocaml.root(current_path())
-  local build_dir = cache_build_dir("ocaml-watch", root)
+  local root = dune_root()
+  if not root then
+    return
+  end
+  local build_dir = ocaml_cache.build_dir("ocaml-watch", root)
   run_dune({ "build", "--watch", "--build-dir", build_dir }, true, {
     position = terminal_window.position,
     height = terminal_window.height,
+    on_buf = function(terminal)
+      attach_terminal_lifecycle(terminal, true)
+    end,
     keys = {
       hide_watch = {
         "<localleader>w",
@@ -82,7 +146,7 @@ function M.watch()
         desc = "Hide Dune build watch",
       },
     },
-  })
+  }, root)
 end
 
 function M.test(arguments)
@@ -125,13 +189,16 @@ function M.docs()
   end
 
   notify("Building OCaml documentation…")
-  vim.system(ocaml.opam_command("dune", { "build", "@doc" }, root), { cwd = root, text = true }, function(result)
-    vim.schedule(function()
+  run_async(
+    "docs:" .. root,
+    ocaml.opam_command("dune", { "build", "@doc" }, root),
+    { cwd = root, text = true },
+    function(result)
       local output = (result.stdout or "") .. (result.stderr or "")
       if result.code ~= 0 then
         vim.fn.setqflist({}, " ", {
           title = "Dune documentation",
-          lines = vim.split(output, "\n", { trimempty = true }),
+          items = ocaml_output.parse_dune(output, root),
         })
         vim.cmd.copen()
         notify("Documentation build failed", vim.log.levels.ERROR)
@@ -139,7 +206,7 @@ function M.docs()
       end
 
       local index = vim.fs.joinpath(root, "_build", "default", "_doc", "_html", "index.html")
-      if not (vim.uv or vim.loop).fs_stat(index) then
+      if not uv.fs_stat(index) then
         notify("Documentation built, but its index was not found", vim.log.levels.WARN)
         return
       end
@@ -152,15 +219,15 @@ function M.docs()
           end
         end
       end)
-    end)
-  end)
+    end
+  )
 end
 
 local function repl_spec(buffer)
   local root = ocaml.root(current_path(buffer))
   local command
   if ocaml.is_dune_project(root) then
-    local build_dir = cache_build_dir("ocaml-utop", root)
+    local build_dir = ocaml_cache.build_dir("ocaml-utop", root)
     command = ocaml.opam_command("dune", { "utop", "--build-dir", build_dir }, root)
   else
     command = ocaml.opam_command("utop", nil, root)
@@ -171,16 +238,19 @@ local function repl_spec(buffer)
       interactive = false,
       auto_insert = true,
       auto_close = false,
-      win = vim.tbl_extend("force", repl_window, {
+      win = vim.tbl_deep_extend("force", {}, repl_window, {
+        keys = {
+          hide_repl = {
+            "<localleader>r",
+            "hide",
+            mode = { "n", "t" },
+            desc = "Hide UTop",
+          },
+        },
         on_buf = function(terminal)
-          terminal:on("TermOpen", function()
-            local channel = vim.bo[terminal.buf].channel
-            terminal.ocaml_repl_pid = channel > 0 and vim.fn.jobpid(channel) or nil
-            terminal.ocaml_repl_stopping = false
-          end, { buf = true })
+          attach_terminal_lifecycle(terminal, false)
           terminal:on("TermClose", function()
-            terminal.ocaml_repl_pid = nil
-            if terminal.ocaml_repl_stopping then
+            if terminal.ocaml_stopping then
               return
             end
             if vim.v.event.status == 0 then
@@ -189,34 +259,12 @@ local function repl_spec(buffer)
             else
               local status = vim.v.event.status
               vim.schedule(function()
-                if terminal:buf_valid() and not terminal.ocaml_repl_stopping then
+                if terminal:buf_valid() and not terminal.ocaml_stopping then
                   notify(("UTop exited with code %d; check the terminal output"):format(status), vim.log.levels.ERROR)
                 end
               end)
             end
           end, { buf = true })
-          terminal:on("BufUnload", function()
-            local pid = terminal.ocaml_repl_pid
-            terminal.ocaml_repl_pid = nil
-            terminal.ocaml_repl_stopping = true
-            if pid then
-              pcall(uv.kill, pid, "sigterm")
-            end
-          end, { buf = true })
-          terminal:on("WinResized", function()
-            -- Lambda-Term binds Ctrl-L to Clear_screen; wait for the resize drag to settle.
-            terminal.ocaml_repl_resize = (terminal.ocaml_repl_resize or 0) + 1
-            local resize = terminal.ocaml_repl_resize
-            vim.defer_fn(function()
-              if resize ~= terminal.ocaml_repl_resize or not terminal:buf_valid() then
-                return
-              end
-              local channel = vim.bo[terminal.buf].channel
-              if channel > 0 and vim.fn.jobwait({ channel }, 0)[1] == -1 then
-                vim.api.nvim_chan_send(channel, "\f")
-              end
-            end, 100)
-          end, { win = true })
         end,
       }),
     },
@@ -228,7 +276,7 @@ local function repl_running(terminal)
     return false
   end
   local channel = vim.bo[terminal.buf].channel
-  return channel > 0 and vim.fn.jobwait({ channel }, 0)[1] == -1
+  return channel_running(channel)
 end
 
 local function get_repl(buffer, create)
@@ -268,14 +316,18 @@ function M.toggle_repl()
 end
 
 local function send_to_repl(text, buffer)
-  text = vim.trim(text or "")
-  if text == "" then
+  text = text or ""
+  if text:match("^%s*$") then
     notify("There is no OCaml text to send", vim.log.levels.WARN)
     return
   end
-  if not text:match(";;%s*$") then
-    text = text .. ";;"
+
+  local trailing = text:match("%s*$") or ""
+  local body = trailing == "" and text or text:sub(1, #text - #trailing)
+  if not body:match(";;$") then
+    body = body .. ";;"
   end
+  text = body .. trailing
 
   buffer = buffer or vim.api.nvim_get_current_buf()
   local source_window = vim.api.nvim_get_current_win()
@@ -289,14 +341,26 @@ local function send_to_repl(text, buffer)
     vim.api.nvim_set_current_win(source_window)
   end
 
-  local ready = vim.wait(1000, function()
-    return vim.api.nvim_buf_is_valid(terminal.buf) and vim.bo[terminal.buf].channel > 0
-  end, 20)
-  if not ready then
-    notify("UTop did not start in time", vim.log.levels.ERROR)
-    return
+  local function send(attempt)
+    if not terminal:buf_valid() then
+      notify("UTop closed before the text could be sent", vim.log.levels.ERROR)
+      return
+    end
+
+    local channel = vim.bo[terminal.buf].channel
+    if channel_running(channel) then
+      vim.api.nvim_chan_send(channel, text .. "\n")
+      return
+    end
+    if attempt >= 50 then
+      notify("UTop did not start in time", vim.log.levels.ERROR)
+      return
+    end
+    vim.defer_fn(function()
+      send(attempt + 1)
+    end, 20)
   end
-  vim.api.nvim_chan_send(vim.bo[terminal.buf].channel, text .. "\n")
+  send(0)
 end
 
 function M.send_line()
@@ -355,6 +419,39 @@ function M.switch_impl_intf()
   end
 end
 
+function M.refresh_tools()
+  ocaml.clear_tool_cache()
+  require("config.ocaml_indent").clear_cache()
+  notify("Cleared cached OPAM tool resolutions")
+end
+
+---@param all? boolean
+function M.clean_cache(all)
+  local root = ocaml.root(current_path())
+
+  local function clean()
+    local removed, errors = ocaml_cache.clean(root, all == true)
+    if #errors > 0 then
+      notify(table.concat(errors, "\n"), vim.log.levels.ERROR)
+      return
+    end
+    notify(("Removed %d OCaml cache director%s"):format(removed, removed == 1 and "y" or "ies"))
+  end
+
+  if all then
+    clean()
+    return
+  end
+
+  vim.ui.select({ "Remove project caches", "Cancel" }, {
+    prompt = "Close this project's Dune watch and UTop before cleaning",
+  }, function(choice)
+    if choice == "Remove project caches" then
+      clean()
+    end
+  end)
+end
+
 function M.actions()
   local actions = {
     { label = "Build project", run = M.build },
@@ -367,6 +464,8 @@ function M.actions()
     { label = "Send current line", run = M.send_line },
     { label = "Send current file", run = M.send_file },
     { label = "Switch implementation/interface", run = M.switch_impl_intf },
+    { label = "Refresh OPAM tools", run = M.refresh_tools },
+    { label = "Clean project caches", run = M.clean_cache },
   }
 
   require("snacks").picker.select(actions, {
@@ -410,14 +509,14 @@ local function map_buffer(buffer)
   vim.api.nvim_buf_create_user_command(buffer, "OcamlActions", M.actions, { desc = "Search OCaml actions" })
   vim.api.nvim_buf_create_user_command(buffer, "OcamlBuild", function(command)
     M.build(command.fargs)
-  end, { nargs = "*", desc = "Build the Dune project" })
+  end, { nargs = "*", complete = "file", desc = "Build the Dune project" })
   vim.api.nvim_buf_create_user_command(buffer, "OcamlWatch", M.watch, { desc = "Toggle Dune build watch" })
   vim.api.nvim_buf_create_user_command(buffer, "OcamlTest", function(command)
     M.test(command.fargs)
-  end, { nargs = "*", desc = "Run Dune tests" })
+  end, { nargs = "*", complete = "file", desc = "Run Dune tests" })
   vim.api.nvim_buf_create_user_command(buffer, "OcamlExec", function(command)
     M.execute(command.fargs)
-  end, { nargs = "*", desc = "Run a Dune executable" })
+  end, { nargs = "*", complete = "file", desc = "Run a Dune executable" })
   vim.api.nvim_buf_create_user_command(buffer, "OcamlDocs", M.docs, { desc = "Build OCaml documentation" })
   vim.api.nvim_buf_create_user_command(buffer, "OcamlUtop", M.toggle_repl, { desc = "Toggle the project UTop" })
   vim.api.nvim_buf_create_user_command(
@@ -431,6 +530,15 @@ local function map_buffer(buffer)
   vim.api.nvim_buf_create_user_command(buffer, "OcamlSwitchImplIntf", M.switch_impl_intf, {
     desc = "Switch between the OCaml implementation and interface",
   })
+  vim.api.nvim_buf_create_user_command(buffer, "OcamlRefreshTools", M.refresh_tools, {
+    desc = "Refresh cached OPAM tool resolutions",
+  })
+  vim.api.nvim_buf_create_user_command(buffer, "OcamlCleanCache", function(command)
+    M.clean_cache(command.bang)
+  end, {
+    bang = true,
+    desc = "Clean project OCaml caches; use ! to clean all OCaml caches",
+  })
 
   local ok, which_key = pcall(require, "which-key")
   if ok then
@@ -439,6 +547,7 @@ local function map_buffer(buffer)
 end
 
 function M.setup()
+  ocaml_cache.cleanup_rpc_registry()
   local group = vim.api.nvim_create_augroup("garrett_ocaml_workflow", { clear = true })
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
