@@ -1,6 +1,6 @@
 -- Python-specific overrides on top of `lazyvim.plugins.extras.lang.python`.
--- The extra already wires pyright + ruff LSP, conform ruff_format on save,
--- and venv-selector. We only add what's missing or different.
+-- The extra already wires pyright, Ruff's native LSP formatter, and
+-- venv-selector. We only add what's missing or different.
 
 return {
   -- Make pyright defer linting/import-sorting to ruff and run only type checks.
@@ -14,7 +14,7 @@ return {
             pyright = { disableOrganizeImports = true },
             python = {
               analysis = {
-                typeCheckingMode = "basic",
+                typeCheckingMode = "standard",
                 autoImportCompletions = true,
                 diagnosticMode = "openFilesOnly",
               },
@@ -29,15 +29,5 @@ return {
   {
     "mason-org/mason.nvim",
     opts = { ensure_installed = { "pyright", "ruff" } },
-  },
-
-  -- venv-selector: a manual override picker. Auto-detection of `.venv` at
-  -- project root is already on by default in the LazyVim extra.
-  {
-    "linux-cultist/venv-selector.nvim",
-    optional = true,
-    keys = {
-      { "<leader>cv", "<cmd>VenvSelect<cr>", desc = "Select VirtualEnv" },
-    },
   },
 }
