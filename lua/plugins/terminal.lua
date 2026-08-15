@@ -10,8 +10,8 @@
 
 local terminal = require("config.terminal")
 
----@param cmd string|string[]|fun(root: string): string[]?, string?
----@param opts? snacks.terminal.Opts
+---@param cmd? string|string[]|fun(root: string):(string[]?, string?)
+---@param opts? table
 local function snacks_term(cmd, opts)
   return function()
     local root = terminal.root()
