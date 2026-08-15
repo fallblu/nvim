@@ -89,7 +89,15 @@ local function plugins()
     return
   end
 
-  for _, name in ipairs({ "snacks.nvim", "hardtime.nvim", "precognition.nvim", "nvim-treesitter", "cornelis" }) do
+  for _, name in ipairs({
+    "snacks.nvim",
+    "sidekick.nvim",
+    "vim-tmux-navigator",
+    "hardtime.nvim",
+    "precognition.nvim",
+    "nvim-treesitter",
+    "cornelis",
+  }) do
     local plugin = lazy_config.plugins[name]
     if plugin and plugin.dir and vim.uv.fs_stat(plugin.dir) then
       ok(("%s is installed"):format(name))
@@ -103,6 +111,24 @@ local function plugins()
   parser("ocaml_interface")
   parser("ocamllex")
   parser("menhir")
+end
+
+local function codex_and_tmux()
+  start("Codex and tmux")
+
+  executable("codex", false, "required for the Sidekick Codex workflow")
+  executable("tmux", false, "required for persistent Codex sessions and cross-pane navigation")
+  executable("ps", false, "vim-tmux-navigator uses it to detect Neovim panes")
+  executable("lsof", false, "Sidekick uses it to discover persistent CLI sessions")
+
+  local tmux_config = vim.fn.expand("~/.config/tmux/tmux.conf")
+  if vim.fn.filereadable(tmux_config) == 1 then
+    ok(("tmux configuration found at %s"):format(tmux_config))
+  else
+    warn(
+      ("tmux configuration is missing at %s; cross-pane navigation needs matching tmux bindings"):format(tmux_config)
+    )
+  end
 end
 
 local function python()
@@ -178,6 +204,7 @@ end
 function M.check()
   runtime()
   plugins()
+  codex_and_tmux()
   python()
   ocaml()
   agda()

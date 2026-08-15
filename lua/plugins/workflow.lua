@@ -6,7 +6,10 @@ return {
   -- Snacks fallback while retaining Snacks for pickers and terminals.
   {
     "folke/snacks.nvim",
-    opts = { explorer = { enabled = false } },
+    opts = {
+      explorer = { enabled = false },
+      image = { enabled = false },
+    },
     keys = {
       { "<leader>fe", false },
       { "<leader>fE", false },

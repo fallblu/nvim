@@ -1,10 +1,12 @@
 # Neovim workflow
 
-This is a focused LazyVim configuration for Python, OCaml, Agda, pytest, and
-embedded terminals. Navigation is picker-first, Hardtime applies recoverable
-training constraints, and Precognition displays contextual motion hints. The
-language workflows resolve tools and roots per project and keep long-running
-jobs isolated from ordinary build directories.
+This is a focused LazyVim configuration for Python, OCaml, Agda, pytest, Codex,
+tmux, and embedded terminals. Navigation is picker-first, Hardtime applies
+recoverable training constraints, and Precognition displays contextual motion
+hints. The language workflows resolve tools and roots per project and keep
+long-running jobs isolated from ordinary build directories. Snacks image
+handling is explicitly disabled, so image files are not intercepted or
+rendered inside Neovim.
 
 ## Navigate directly
 
@@ -85,8 +87,36 @@ contains `tests/live`.
 Inside a terminal, press `<Esc>` twice within 200 ms to enter Terminal-Normal
 mode. A single escape is still delivered to the process. In Terminal-Normal
 mode, `q` hides the terminal and `<leader>,` opens the buffer picker.
-`<C-h>`, `<C-j>`, `<C-k>`, and `<C-l>` move directly between split windows
-from Terminal mode.
+`<C-h>`, `<C-j>`, `<C-k>`, and `<C-l>` move directly between split windows and
+continue into adjacent tmux panes from Terminal mode.
+
+## Codex and tmux
+
+Sidekick runs the installed official `codex` CLI in a right-hand terminal. Its
+session is backed by tmux, so hiding the window or restarting Neovim does not
+discard the conversation. Copilot next-edit suggestions are disabled; this
+integration uses Codex only.
+
+| Goal | Key |
+| --- | --- |
+| Toggle Codex | `<leader>aa` |
+| Focus Codex from another window | `<C-.>` |
+| Send the current context | `<leader>at` |
+| Send the current file | `<leader>af` |
+| Send a visual selection | `<leader>av` |
+| Choose and send a prepared prompt | `<leader>ap` |
+| Detach the Codex session | `<leader>ad` |
+
+Inside the Codex terminal, `<C-.>` hides the window, `<C-z>` returns to the
+previous window without hiding it, and `<C-p>` opens the same prompt/context
+picker. Run `:Sidekick cli show name=codex` when command-line access is more
+convenient.
+
+Normal-mode `<C-h>`, `<C-j>`, `<C-k>`, and `<C-l>` navigate seamlessly across
+Neovim windows and tmux panes. Matching tmux bindings live in
+`~/.config/tmux/tmux.conf`; reload an existing tmux server with
+`tmux source-file ~/.config/tmux/tmux.conf`. Agda's buffer-local `<C-j>` and
+`<C-k>` goal mappings continue to take precedence in Agda buffers.
 
 ## OCaml
 
@@ -203,7 +233,8 @@ tests, and fails on configuration health errors. It finds StyLua and LuaLS on
 `PATH` or in Mason. Set `NVIM_BIN` to test with a non-default Neovim binary.
 
 Use `:checkhealth garrett` interactively for the same environment-oriented
-report. It covers core executables, workflow plugins, Tree-sitter parsers,
-Python command selection, the active OPAM switch, Agda/Cornelis tools, and the
-WSL clipboard fallback. Optional integrations such as Lazygit are reported
-without treating their absence as a broken configuration.
+report. It covers core executables, workflow plugins, Codex/tmux integration,
+Tree-sitter parsers, Python command selection, the active OPAM switch,
+Agda/Cornelis tools, and the WSL clipboard fallback. Optional integrations such
+as Lazygit are reported without treating their absence as a broken
+configuration.

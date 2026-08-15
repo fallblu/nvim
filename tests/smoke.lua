@@ -47,6 +47,18 @@ local function plugin_spec(name, specs)
   error("plugin spec not found: " .. name)
 end
 
+---@param lhs string
+---@param keys table[]
+---@return table
+local function key_spec(lhs, keys)
+  for _, key in ipairs(keys) do
+    if key[1] == lhs then
+      return key
+    end
+  end
+  error("key spec not found: " .. lhs)
+end
+
 ---@param lines string[]
 ---@param callback fun(buffer: integer)
 local function with_scratch_buffer(lines, callback)
@@ -89,10 +101,61 @@ test("loads every local module", function()
     "config.ocaml_output",
     "config.ocaml_workflow",
     "config.terminal",
+    "config.tmux",
     "garrett.health",
   }) do
     assert_truthy(require(module), "failed to load " .. module)
   end
+end)
+
+test("disables image handling explicitly", function()
+  local snacks = plugin_spec("folke/snacks.nvim", require("plugins.workflow"))
+  assert_equal(snacks.opts.image.enabled, false)
+end)
+
+test("configures Codex as a persistent tmux-backed CLI", function()
+  local extras = vim.json.decode(table.concat(vim.fn.readfile("lazyvim.json"), "\n")).extras
+  assert_truthy(vim.tbl_contains(extras, "lazyvim.plugins.extras.ai.sidekick"))
+
+  local sidekick = plugin_spec("folke/sidekick.nvim", require("plugins.ai"))
+  assert_equal(sidekick.opts.nes.enabled, false)
+  assert_equal(sidekick.opts.cli.mux, {
+    backend = "tmux",
+    enabled = true,
+    create = "terminal",
+  })
+  assert_truthy(sidekick.opts.cli.win.keys.nav_left)
+
+  local captured
+  local original_cli = package.loaded["sidekick.cli"]
+  package.loaded["sidekick.cli"] = {
+    toggle = function(opts)
+      captured = opts
+    end,
+  }
+  local success, result = xpcall(function()
+    key_spec("<leader>aa", sidekick.keys)[2]()
+  end, debug.traceback)
+  package.loaded["sidekick.cli"] = original_cli
+  if not success then
+    error(result)
+  end
+  assert_equal(captured.name, "codex")
+end)
+
+test("routes split navigation through tmux", function()
+  local specs = require("plugins.tmux")
+  local navigator = plugin_spec("christoomey/vim-tmux-navigator", specs)
+  assert_equal(key_spec("<C-h>", navigator.keys)[2], "<cmd>TmuxNavigateLeft<cr>")
+  assert_equal(key_spec("<C-l>", navigator.keys)[2], "<cmd>TmuxNavigateRight<cr>")
+
+  local snacks = plugin_spec("folke/snacks.nvim", specs)
+  local floating = {
+    is_floating = function()
+      return true
+    end,
+  }
+  assert_equal(snacks.opts.terminal.win.keys.nav_h[2](floating), "<C-h>")
 end)
 
 test("applies core options and global mappings", function()
@@ -102,6 +165,9 @@ test("applies core options and global mappings", function()
   assert_equal(vim.fn.maparg("<leader>uP", "n", false, true).desc, "Toggle Precognition")
   assert_equal(vim.fn.maparg("<leader>uH", "n", false, true).desc, "Toggle Hardtime")
   assert_equal(vim.fn.maparg("<C-/>", "n", false, true).desc, "Terminal (Root Dir)")
+  assert_equal(vim.fn.maparg("<leader>aa", "n", false, true).desc, "Toggle Codex")
+  assert_equal(vim.fn.maparg("<C-h>", "n", false, true).desc, "Go to left window or tmux pane")
+  assert_equal(require("snacks").config.image.enabled, false)
 end)
 
 test("keeps motion training recoverable", function()
