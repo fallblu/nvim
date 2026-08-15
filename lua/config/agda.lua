@@ -160,14 +160,23 @@ local function compile(run_after)
   end)
 end
 
-local function cursor_in_goal(window)
+---@param window integer
+---@return boolean
+function M.cursor_in_goal(window)
   return vim.api.nvim_win_call(window, function()
     local cursor = vim.api.nvim_win_get_cursor(window)
     local column = cursor[2] + 1
     local start = vim.fn.searchpos([[\V{!]], "bcnW")
+    local previous_finish = vim.fn.searchpos([[\V!}]], "bnW")
     local finish = vim.fn.searchpos([[\V!}]], "cnW")
 
     if start[1] == 0 or finish[1] == 0 then
+      return false
+    end
+
+    local closed_before_cursor = previous_finish[1] > start[1]
+      or (previous_finish[1] == start[1] and previous_finish[2] > start[2])
+    if closed_before_cursor then
       return false
     end
 
@@ -207,7 +216,7 @@ local function move_to_current_goal_start()
     return
   end
 
-  if not cursor_in_goal(vim.api.nvim_get_current_win()) then
+  if not M.cursor_in_goal(vim.api.nvim_get_current_win()) then
     return
   end
 
@@ -255,7 +264,7 @@ local function jump_goal(name, enter_insert)
       return
     end
 
-    if not moved or not cursor_in_goal(window) then
+    if not moved or not M.cursor_in_goal(window) then
       return
     end
 

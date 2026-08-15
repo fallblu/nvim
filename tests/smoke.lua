@@ -222,6 +222,27 @@ test("resolves Agda project roots and compiler output", function()
   assert_equal(agda.compiled_executable(('Calling: ghc -o "%s" Main.hs'):format(shell), source, root), shell)
 end)
 
+test("distinguishes Agda goals from text between them", function()
+  local agda = require("config.agda")
+  local line = "first = {! !}  between  second = {! value !}"
+
+  with_scratch_buffer({ line }, function()
+    local first_start = assert(line:find("{!", 1, true)) - 1
+    local between = assert(line:find("between", 1, true)) - 1
+    local second_start = assert(line:find("{!", first_start + 3, true)) - 1
+    local final_brace = #line - 1
+
+    vim.api.nvim_win_set_cursor(0, { 1, first_start })
+    assert_equal(agda.cursor_in_goal(0), true)
+    vim.api.nvim_win_set_cursor(0, { 1, between })
+    assert_equal(agda.cursor_in_goal(0), false)
+    vim.api.nvim_win_set_cursor(0, { 1, second_start + 3 })
+    assert_equal(agda.cursor_in_goal(0), true)
+    vim.api.nvim_win_set_cursor(0, { 1, final_brace })
+    assert_equal(agda.cursor_in_goal(0), false)
+  end)
+end)
+
 test("commits multibyte Agda input without corrupting cursor offsets", function()
   local input = require("config.agda_input")
   input.register("nvim-test-arrow", "→")
