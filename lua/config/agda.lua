@@ -100,7 +100,9 @@ local function current_source()
     return nil
   end
 
-  vim.cmd.write()
+  if vim.bo.modified or not vim.uv.fs_stat(file) then
+    vim.cmd.write()
+  end
   return file
 end
 
