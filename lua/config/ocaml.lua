@@ -37,13 +37,10 @@ end
 ---@param path? string
 ---@return string?
 function M.local_switch(path)
-  local switch = find_upward("_opam", path or M.root(), "directory")
-  if not switch then
-    return nil
-  end
-
+  local root = M.root(path)
+  local switch = vim.fs.joinpath(root, "_opam")
   local config = vim.fs.joinpath(switch, ".opam-switch", "switch-config")
-  return uv.fs_stat(config) and vim.fs.dirname(switch) or nil
+  return uv.fs_stat(config) and root or nil
 end
 
 ---@param tool string

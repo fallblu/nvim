@@ -291,6 +291,21 @@ test("keeps OCaml roots and cache paths project scoped", function()
   assert_truthy(directories[1] ~= cache.project_dirs(root .. "-other")[1])
 end)
 
+test("does not inherit an OPAM switch across a project boundary", function()
+  local root = vim.fs.normalize(vim.fn.getcwd())
+  local ocaml = require("config.ocaml")
+  local fixture = vim.fs.joinpath(root, "tests", "fixtures")
+  local nested = vim.fs.joinpath(fixture, "ocaml-parent", "nested")
+  local nested_source = vim.fs.joinpath(nested, "lib", "example.ml")
+  local local_root = vim.fs.joinpath(fixture, "ocaml-local")
+  local local_source = vim.fs.joinpath(local_root, "lib", "example.ml")
+
+  assert_equal(ocaml.root(nested_source), nested)
+  assert_equal(ocaml.local_switch(nested_source), nil)
+  assert_equal(ocaml.root(local_source), local_root)
+  assert_equal(ocaml.local_switch(local_source), local_root)
+end)
+
 if #failures > 0 then
   print(("\n%d test(s) passed; %d failed"):format(passed, #failures))
   for _, failure in ipairs(failures) do
