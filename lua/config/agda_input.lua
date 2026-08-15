@@ -1,7 +1,7 @@
 local M = {}
 
 local glyphs = {}
-local agda_filetypes = { "agda", "lagda", "lagda.md", "lagda.rst", "lagda.tex" }
+local agda_filetypes = require("config.filetypes").agda
 
 local function normalize_sequence(sequence)
   -- The original Vim mappings escape bars because `:map` treats them as

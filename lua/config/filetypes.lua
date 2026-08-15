@@ -14,4 +14,6 @@ M.agda = {
   "lagda.tex",
 }
 
+M.agda_patterns = { "*.agda", "*.lagda", "*.lagda.md", "*.lagda.rst", "*.lagda.tex" }
+
 return M

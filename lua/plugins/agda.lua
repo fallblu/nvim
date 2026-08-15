@@ -1,8 +1,16 @@
 return {
   {
+    "nvim-treesitter/nvim-treesitter",
+    opts = function(_, opts)
+      vim.list_extend(opts.ensure_installed, { "agda" })
+    end,
+  },
+
+  {
     "agda/cornelis",
+    -- Cornelis v2.8.0 matches the installed Agda 2.8 toolchain.
     commit = "deda7eb399efe94cc49c645da7b6f94780fe0c19",
-    ft = { "agda", "lagda", "lagda.md", "lagda.rst", "lagda.tex" },
+    ft = require("config.filetypes").agda,
     build = "stack --system-ghc install",
     dependencies = {
       "neovimhaskell/nvim-hs.vim",
