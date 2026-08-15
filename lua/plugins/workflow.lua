@@ -31,7 +31,7 @@ return {
       max_time = 1000,
       max_count = 3,
       restriction_mode = "block",
-      force_exit_insert_mode = true,
+      force_exit_insert_mode = false,
       max_insert_idle_ms = 10000,
       restricted_keys = {
         ["w"] = { "n", "x" },

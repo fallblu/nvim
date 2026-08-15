@@ -4,7 +4,7 @@ local ocaml = require("config.ocaml")
 local uv = vim.uv or vim.loop
 
 local terminal_window = { position = "bottom", height = 0.4 }
-local repl_window = { position = "right", width = 0.4 }
+local repl_window = { position = "bottom", height = 0.4 }
 
 local function notify(message, level)
   vim.notify(message, level or vim.log.levels.INFO, { title = "OCaml" })
