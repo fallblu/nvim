@@ -3,13 +3,13 @@
 -- Add any additional options here
 
 vim.opt.wrap = true
+vim.opt.breakindent = true
 vim.opt.scrolloff = 8
 vim.opt.sidescrolloff = 8
 vim.opt.showtabline = 0
 -- vim.opt.colorcolumn = "100"
 
 vim.opt.mouse = ""
-vim.opt.clipboard = "unnamedplus"
 
 -- WSL clipboard fallback: only used if win32yank.exe isn't on PATH.
 -- (Neovim's bundled binaries normally provide it.)

@@ -19,3 +19,15 @@ vim.api.nvim_create_autocmd("FileType", {
     vim.opt_local.foldlevelstart = 99
   end,
 })
+
+local spell_group = vim.api.nvim_create_augroup("garrett_code_spell", { clear = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+  group = spell_group,
+  pattern = vim.list_extend({ "python" }, require("config.filetypes").agda),
+  callback = function()
+    -- Tree-sitter/syntax @spell captures restrict checking to comments and
+    -- documentation rather than identifiers in ordinary source code.
+    vim.opt_local.spell = true
+  end,
+})
