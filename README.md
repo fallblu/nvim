@@ -1,8 +1,10 @@
 # Neovim workflow
 
 This is a focused LazyVim configuration for Python, OCaml, Agda, pytest, and
-embedded terminals. Navigation is picker-first, and Hardtime applies training
-constraints that favor direct motions and operator-first edits.
+embedded terminals. Navigation is picker-first, Hardtime applies recoverable
+training constraints, and Precognition displays contextual motion hints. The
+language workflows resolve tools and roots per project and keep long-running
+jobs isolated from ordinary build directories.
 
 ## Navigate directly
 
@@ -21,6 +23,10 @@ constraints that favor direct motions and operator-first edits.
 Use `f`, `F`, `t`, and `T` for a known character on the current line; repeat
 with `;` and reverse with `,`. Prefer a count such as `5j` to repeated presses.
 
+Precognition shows the destinations for motions such as `w`, `b`, `e`, `{`,
+`}`, `0`, and `$` as virtual text in Normal mode. It hides its hints while
+inserting text and in transient plugin buffers. Toggle it with `<leader>uP`.
+
 ## Edit with operators
 
 Build edits as an operator followed by a motion or text object:
@@ -38,9 +44,11 @@ Build edits as an operator followed by a motion or text object:
 Normal-mode `v` and `V` are disabled during training; blockwise `<C-v>` remains
 available. Press `<Esc>` to leave Insert mode.
 
-Hardtime blocks rapid repeated motions and leaves Insert mode after ten seconds
-of inactivity. Use `<leader>uH` or `:Hardtime toggle` for an intentional escape
-hatch, and `:Hardtime report` to review recurring habits.
+Hardtime blocks rapid repeated motions, including repeated `w`, but never
+forces an exit from Insert mode. Snacks interfaces are exempt so picker and
+terminal interaction remains natural. Use `<leader>uH` or `:Hardtime toggle`
+for an intentional escape hatch, and `:Hardtime report` to review recurring
+habits.
 
 ## Diagnostics and spelling
 
@@ -55,11 +63,30 @@ suggestions, and `zg` to accept a word.
 ## Tests and terminals
 
 Neotest uses `<leader>tr` for the nearest test, `<leader>tt` for the current
-file, and `<leader>tl` for the last run. `<C-/>` toggles the primary terminal;
-the `<leader>;` group contains split terminals, pytest, the Python REPL, and
-Lazygit. Inside a terminal, `<Esc>` enters Terminal-Normal mode, where `q`
-hides the terminal and `<leader>,` opens the buffer picker. `<C-h>`, `<C-j>`,
-`<C-k>`, and `<C-l>` move directly between split windows from Terminal mode.
+file, and `<leader>tl` for the last run. `<C-/>` toggles the primary
+project-root terminal. Each custom layout has a separate persistent identity,
+so opening one no longer moves the same shell between unrelated layouts:
+
+| Goal | Key |
+| --- | --- |
+| Floating shell | `<leader>;t` |
+| Bottom split shell | `<leader>;s` |
+| Right split shell | `<leader>;v` |
+| Project Python REPL | `<leader>;p` |
+| Run the project pytest suite | `<leader>;r` |
+| Run `tests/live` with `PERSISTRA_RUN_LIVE=1` | `<leader>;l` |
+| Open Lazygit, when installed | `<leader>;g` |
+
+Python terminals prefer the environment selected by venv-selector, then a
+`uv.lock` project, and finally an available system interpreter. The live-suite
+mapping is available globally but refuses to run unless the current project
+contains `tests/live`.
+
+Inside a terminal, press `<Esc>` twice within 200 ms to enter Terminal-Normal
+mode. A single escape is still delivered to the process. In Terminal-Normal
+mode, `q` hides the terminal and `<leader>,` opens the buffer picker.
+`<C-h>`, `<C-j>`, `<C-k>`, and `<C-l>` move directly between split windows
+from Terminal mode.
 
 ## OCaml
 
@@ -69,7 +96,7 @@ project, that project-local switch is selected automatically. Install the
 editor and workflow tools in every switch used for development:
 
 ```sh
-opam install dune ocaml-lsp-server ocamlformat odoc utop
+opam install dune ocaml-lsp-server ocamlformat ocp-indent odoc utop
 ```
 
 OCaml LSP supplies completion, navigation, diagnostics, code actions, semantic
@@ -78,6 +105,11 @@ implementation and its `.mli` interface. OCamlFormat runs on save for OCaml,
 interface, OCamllex, and Menhir files; `dune format-dune-file` formats Dune
 files. Project `.ocamlformat` files are honored, while standalone learning files
 can still be formatted.
+
+Project discovery uses the nearest `dune-project`, `dune-workspace`, `.git`, or
+`.opam` marker. A valid project-local `_opam` switch takes precedence over the
+active global switch. Tool results are cached for responsiveness; use
+`:OcamlRefreshTools` after installing or changing switch tools.
 
 Run `<localleader>w` early in a project to start `dune build --watch`. The
 persistent terminal can be hidden with the same key from either Terminal or
@@ -104,24 +136,33 @@ and sending a file saves it before evaluating it with `#use`. UTop terminals are
 persistent and separate for each project. Project REPL builds use a dedicated
 directory under Neovim's cache, so they can run independently of the watcher
 and commands using the project's `_build` directory. Exiting UTop closes its
-terminal automatically.
-The REPL opens in a right split and redraws after resizing. Hiding the terminal
-with `q` or `<localleader>r` keeps the REPL running; deleting the terminal buffer
-stops it.
+terminal automatically. The REPL opens in a bottom split. Hiding it with `q` or
+`<localleader>r` keeps the process running; deleting the terminal buffer stops
+it.
 
 The same actions are available as commands: `:OcamlActions`, `:OcamlBuild`,
 `:OcamlWatch`, `:OcamlTest`, `:OcamlExec`, `:OcamlDocs`, `:OcamlUtop`,
 `:OcamlSendPhrase`, `:OcamlSendLine`, `:OcamlSendFile`, and
 `:OcamlSwitchImplIntf`. `:OcamlBuild`, `:OcamlTest`, and `:OcamlExec` accept
 optional arguments; invoking `:OcamlExec` without arguments opens a prompt.
+Failed documentation builds populate a navigable quickfix list.
+`:OcamlCleanCache` removes this project's Neovim-owned watcher and UTop build
+directories after confirmation; `:OcamlCleanCache!` removes all such caches.
 
 ## Agda
+
+Cornelis is pinned to v2.8.0 to match the Agda 2.8 toolchain. Ordinary and
+literate Agda filetypes share the same mappings, spelling rules, and committed
+input method. The Agda Tree-sitter parser is installed for syntax-aware
+highlighting of ordinary Agda source.
 
 Completion is explicit: `<Enter>` always inserts a newline and `<C-y>` accepts
 the selected completion. In an Agda buffer, `<C-Space>` opens a searchable
 Unicode reference in both Normal and Insert mode. Entries show their complete
 input sequence, so `∷`, for example, is `\::<Tab>`. Choosing an entry inserts
 it and leaves the buffer in Insert mode. `:AgdaUnicode` opens the same picker.
+Because Agda reserves `<C-Space>` and `<C-k>`, `<C-g>c` opens normal completion
+and `<C-g>s` opens signature help from Insert mode.
 
 Use `<C-j>` / `<C-k>` from either Normal or Insert mode to jump to the next or
 previous goal, center it, and continue in Insert mode. `[g` / `]g` provide
@@ -142,4 +183,27 @@ The most common direct actions use `<localleader>` (backslash by default):
 | Abort / restart Cornelis | `<localleader>A` / `<localleader>R` |
 | Compile / compile and run | `<localleader>b` / `<localleader>x` |
 
-Files continue to load and type-check automatically after each save.
+Files load and type-check automatically 200 ms after the latest save, preventing
+rapid saves from queuing redundant reloads. Compilation runs from the nearest
+`.agda-lib` or Git project root, cancels an older compile when a new one starts,
+and populates quickfix with navigable Agda or GHC diagnostics. Compile-and-run
+uses the executable path reported by GHC rather than guessing its location.
+
+## Maintenance
+
+Run the complete local validation suite from this directory:
+
+```sh
+./scripts/check
+```
+
+The command checks shell syntax and whitespace, verifies Lua formatting with
+StyLua, runs Lua Language Server diagnostics, executes the headless smoke
+tests, and fails on configuration health errors. It finds StyLua and LuaLS on
+`PATH` or in Mason. Set `NVIM_BIN` to test with a non-default Neovim binary.
+
+Use `:checkhealth garrett` interactively for the same environment-oriented
+report. It covers core executables, workflow plugins, Tree-sitter parsers,
+Python command selection, the active OPAM switch, Agda/Cornelis tools, and the
+WSL clipboard fallback. Optional integrations such as Lazygit are reported
+without treating their absence as a broken configuration.
