@@ -1,12 +1,25 @@
 # Neovim workflow
 
-This is a focused LazyVim configuration for Python, OCaml, Agda, pytest, Codex,
+This is a focused Neovim configuration for Python, OCaml, Agda, pytest, Codex,
 tmux, and embedded terminals. Navigation is picker-first, Hardtime applies
 recoverable training constraints, and Precognition displays contextual motion
 hints. The language workflows resolve tools and roots per project and keep
 long-running jobs isolated from ordinary build directories. Snacks image
 handling is explicitly disabled, so image files are not intercepted or
 rendered inside Neovim.
+
+## Dashboard and appearance
+
+Starting Neovim without a file opens a custom dashboard with project search,
+recent files and projects, session restore, configuration access, theme
+selection, and plugin management. It also shows the current working directory
+so the dashboard's project context is explicit.
+
+Kanagawa Wave is the default colorscheme. Press `<leader>uC`, or `t` from the
+dashboard, to browse the curated dark colorschemes with live preview. `<Esc>`
+restores the previous theme; `<Enter>` applies the highlighted theme and saves
+it for future sessions. The selection includes Kanagawa, Catppuccin, Tokyo
+Night, Rosé Pine, Gruvbox, Nightfox, Everforest, and Oxocarbon variants.
 
 ## Navigate directly
 

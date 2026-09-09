@@ -1,5 +1,5 @@
--- Python-specific overrides on top of `lazyvim.plugins.extras.lang.python`.
--- The extra already wires pyright, Ruff's native LSP formatter, and
+-- Python-specific language overrides. The base integration already wires
+-- pyright, Ruff's native LSP formatter, and
 -- venv-selector. We only add what's missing or different.
 
 return {

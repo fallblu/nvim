@@ -13,7 +13,7 @@ return {
       },
     },
     opts = {
-      startVisible = true,
+      startVisible = false,
       showBlankVirtLine = false,
       highlightColor = { link = "Comment" },
       disabled_fts = {

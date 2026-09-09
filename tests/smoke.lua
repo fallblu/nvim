@@ -85,8 +85,8 @@ local function with_scratch_buffer(lines, callback)
   end
 end
 
--- Headless startup can finish its command queue before LazyVim emits this
--- event, while an interactive session emits it immediately after startup.
+-- Headless startup can finish its command queue before this event, while an
+-- interactive session emits it immediately after startup.
 vim.api.nvim_exec_autocmds("User", { pattern = "VeryLazy", modeline = false })
 vim.wait(300)
 
@@ -94,6 +94,7 @@ test("loads every local module", function()
   for _, module in ipairs({
     "config.agda",
     "config.agda_input",
+    "config.colorscheme",
     "config.filetypes",
     "config.ocaml",
     "config.ocaml_cache",
@@ -111,6 +112,56 @@ end)
 test("disables image handling explicitly", function()
   local snacks = plugin_spec("folke/snacks.nvim", require("plugins.workflow"))
   assert_equal(snacks.opts.image.enabled, false)
+end)
+
+test("provides a neutral dashboard and curated dark colorschemes", function()
+  local appearance = require("plugins.appearance")
+  local colorscheme = require("config.colorscheme")
+  local framework = plugin_spec("LazyVim/LazyVim", appearance)
+  local snacks = plugin_spec("folke/snacks.nvim", appearance)
+  local opts = { dashboard = { preset = { pick = "preserved" } } }
+  snacks.opts(nil, opts)
+
+  assert_equal(colorscheme.default, "kanagawa-wave")
+  assert_truthy(#colorscheme.options >= 15)
+  assert_equal(framework.opts.news.lazyvim, false)
+  assert_equal(opts.dashboard.preset.pick, "preserved")
+  assert_truthy(not opts.dashboard.preset.header:lower():find("lazyvim", 1, true))
+
+  local dashboard_keys = {}
+  for _, item in ipairs(opts.dashboard.preset.keys) do
+    dashboard_keys[item.key] = item.desc
+  end
+  assert_equal(dashboard_keys.p, "Projects")
+  assert_equal(dashboard_keys.t, "Colorschemes")
+  assert_equal(dashboard_keys.u, "Plugin Updates")
+
+  for _, plugin in ipairs({
+    "rebelot/kanagawa.nvim",
+    "rose-pine/neovim",
+    "ellisonleao/gruvbox.nvim",
+    "EdenEast/nightfox.nvim",
+    "sainnhe/everforest",
+    "nyoom-engineering/oxocarbon.nvim",
+  }) do
+    assert_truthy(plugin_spec(plugin, appearance))
+  end
+  assert_equal(key_spec("<leader>uC", snacks.keys)[2], colorscheme.pick)
+end)
+
+test("persists only supported colorschemes", function()
+  local colorscheme = require("config.colorscheme")
+  local path = vim.fn.tempname()
+
+  assert_equal(colorscheme.selected(path), colorscheme.default)
+  assert_equal(colorscheme.persist("rose-pine-moon", path), true)
+  assert_equal(colorscheme.selected(path), "rose-pine-moon")
+  assert_equal(colorscheme.persist("definitely-not-a-theme", path), false)
+  assert_equal(colorscheme.selected(path), "rose-pine-moon")
+
+  vim.fn.writefile({ "invalid-theme" }, path)
+  assert_equal(colorscheme.selected(path), colorscheme.default)
+  vim.fn.delete(path)
 end)
 
 test("configures Codex as a persistent tmux-backed CLI", function()

@@ -2,8 +2,7 @@ return {
   -- Open buffers are destinations, not a sequence to cycle through.
   { "akinsho/bufferline.nvim", enabled = false },
 
-  -- LazyVim selects an explorer by default, so explicitly neutralize its
-  -- Snacks fallback while retaining Snacks for pickers and terminals.
+  -- Disable the default explorer while retaining Snacks for pickers and terminals.
   {
     "folke/snacks.nvim",
     opts = {

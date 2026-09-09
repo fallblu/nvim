@@ -1,5 +1,5 @@
--- Wire the pytest adapter into the neotest instance from the test.core extra.
--- LazyVim's test extra already provides <leader>tt/tT/tr/ts/tw/tl keymaps.
+-- Wire the pytest adapter into the existing neotest instance. Its test
+-- integration already provides <leader>tt/tT/tr/ts/tw/tl keymaps.
 
 return {
   {

@@ -1,7 +1,7 @@
--- Terminal keymaps backed by snacks.nvim (already loaded by LazyVim).
+-- Terminal keymaps backed by snacks.nvim.
 --
 -- Layout:
---   <C-/>          toggle the project-root terminal (provided by LazyVim)
+--   <C-/>          toggle the project-root terminal
 --   <leader>;<x>   terminal-group prefix (chosen to avoid colliding with
 --                  <leader>t* which the test extra owns)
 --
