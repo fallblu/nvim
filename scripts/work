@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -gt 1 ]]; then
+  printf 'Usage: %s [project-directory]\n' "$0" >&2
+  exit 2
+fi
+
+project_dir="$(cd -- "${1:-.}" && pwd -P)"
+project_name="$(basename -- "$project_dir")"
+project_name="$(printf '%s' "$project_name" | tr -cs '[:alnum:]_-' '-')"
+# Distinguish projects whose directories have the same name.
+project_id="$(printf '%s' "$project_dir" | sha256sum | cut -c1-8)"
+session_name="${project_name}-${project_id}"
+
+if ! tmux has-session -t "=$session_name" 2>/dev/null; then
+  tmux new-session -d -s "$session_name" -n editor -c "$project_dir" \
+    env -u NVIM_APPNAME nvim
+  tmux new-window -d -t "$session_name:" -n shell -c "$project_dir"
+fi
+
+if [[ -n "${TMUX:-}" ]]; then
+  exec tmux switch-client -t "=$session_name"
+else
+  exec tmux attach-session -t "=$session_name"
+fi

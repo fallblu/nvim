@@ -1,8 +1,5 @@
-tt.*
-.tests
-doc/tags
-debug
-.repro
-foo.*
+# Local editor logs and swap files.
 *.log
-data
+.nvimlog
+*.swp
+*.swo
