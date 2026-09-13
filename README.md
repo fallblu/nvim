@@ -22,7 +22,7 @@ the configuration. Press leader sequences one key at a time.
 
 Which-key shows the available next keys when you pause for 300 ms after a
 prefix. Try **Space** for this configuration's shortcuts, **Ctrl+w** for
-native window commands, or **g r** for LSP actions. Keep typing when you
+native window commands, or **g r** for Lua LSP actions. Keep typing when you
 already know a sequence; there is no need to wait for the popup.
 
 Leader groups are **c** for code, **d** for debugging, **p** for Python,
@@ -52,11 +52,11 @@ In a picker, type to filter. **Ctrl+n / Ctrl+p** move through results;
 a horizontal split. **Shift+Tab** shows the picker's help. These picker
 shortcuts apply while the picker is open.
 
-## Read and navigate code
+## Lua language support
 
-Python uses Pyright and Ruff; Lua uses Lua Language Server. Servers start automatically
-for their filetypes. Language servers provide code understanding; Neovim's
-built-in LSP client exposes it through these actions:
+Lua Language Server starts automatically for Lua files and learns Neovim's
+API when editing this configuration. Other Lua projects retain their own
+server settings. Neovim's built-in LSP client exposes these actions in Lua:
 
 | Keys | Action |
 | --- | --- |
@@ -79,28 +79,22 @@ In Insert mode, completion appears on server trigger characters such as `.`.
 Press **Ctrl+Space** to request it explicitly, **Ctrl+n / Ctrl+p** to select,
 **Ctrl+y** to accept, or **Ctrl+e** to dismiss. Enter keeps its native behavior.
 This is native LSP completion, without a separate completion plugin.
+Use `:checkhealth vim.lsp` to inspect attached clients and server availability.
 
-### Python and uv
+## Python and uv
 
-Each project uses its own `.venv/bin/pyright-langserver` when present, with
-Mason's Pyright as a standalone fallback. The interpreter is the project's
-`.venv/bin/python`. Settings in `pyproject.toml` and `pyrightconfig.json`
-remain authoritative for project analysis.
-
-Persistra and Trading Engine both declare Pyright in their development
-dependencies and configure `.venv` in `pyproject.toml`. Their existing
-environments are used directly. Opening a file does not run `uv sync` or
-change dependencies. For a new checkout, prepare its environment using that
-project's documented uv command before editing. Restart Neovim after
-recreating an environment or changing its tools.
+Python language servers are not enabled. Tests, scripts, and REPLs use the
+project's `.venv/bin/python`. Opening a file does not run `uv sync` or change
+dependencies. For a new checkout, prepare its environment using that project's
+documented uv command. Restart Neovim after recreating an environment or
+changing its tools.
 
 Python files format with Ruff on save, using the project's installed Ruff and
-configuration. Import organization and lint fixes run only when requested.
+configuration through Conform. This uses the Ruff command-line formatter.
 
 | Keys | Action |
 | --- | --- |
 | Space c f / Space c F | Format / toggle format on save for this buffer |
-| Space c i / Space c x | Organize imports / apply Ruff lint fixes |
 | Space p n / Space p f | Run nearest pytest test / test file |
 | Space p a / Space p l | Run project tests / repeat this project's last test run |
 | Space p r | Save and run the current Python file |
@@ -115,10 +109,6 @@ variable inspection, and a short practice loop. Test/run/debug shortcuts save
 the current Python buffer first; sending to the REPL uses the selected text
 without saving. Other modified buffers keep their unsaved changes.
 The ordinary `uv run` and `make` commands remain useful in project shells.
-
-Lua Language Server learns Neovim's API when editing this configuration.
-Other Lua projects retain their own server settings. Use `:checkhealth vim.lsp`
-to inspect attached clients and server availability.
 
 ## Windows and buffers
 
@@ -194,7 +184,7 @@ See the [official tmux guide](https://github.com/tmux/tmux/wiki/Getting-Started)
 | `init.lua` | Editor options and startup order |
 | `lua/config/plugins.lua` | Plugin installation, appearance, and pickers |
 | `lua/config/project.lua` | Project root selection |
-| `lua/config/lsp.lua` | Servers, project Python selection, and LSP actions |
+| `lua/config/lsp.lua` | Lua language server and LSP actions |
 | `lua/config/format.lua` | Python formatting and the per-buffer save toggle |
 | `lua/config/python.lua` | Pytest targets, file execution, and project REPLs |
 | `lua/config/debug.lua` | Debug adapter, launch choices, and debugger controls |
@@ -220,11 +210,11 @@ development branch requires Neovim 0.11.7 or later.
 
 Use `:Lazy` to inspect plugins and explicitly update them; `:Lazy restore`
 restores locked revisions. Use `:Mason` for standalone language-server tools.
-On another machine, install Neovim 0.11.3+, Git, ripgrep, Node.js, and uv;
+On another machine, install Neovim 0.11.3+, Git, ripgrep, and uv;
 launch once to install plugins, then run:
 
 ```vim
-:MasonInstall pyright lua-language-server ruff debugpy
+:MasonInstall lua-language-server ruff debugpy
 ```
 
 For each next increment, bring back a concrete task that felt cumbersome.
