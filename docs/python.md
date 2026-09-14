@@ -19,13 +19,38 @@ Python interpreter.
 
 Saving a Python file formats it with Ruff. This changes layout, quoting, and
 spacing according to that project's settings. It does not organize imports or
-apply lint fixes. Python language servers are not enabled, so there are no
-LSP diagnostics, automatic LSP completion, or Python LSP action mappings.
+apply lint fixes. Basedpyright supplies type checking, completion, hover docs,
+signatures, navigation, and rename; Ruff supplies lint diagnostics and code
+actions. Both attach automatically to named Python files. Basedpyright uses
+this project's `.venv` when available, with basic type checking unless project
+settings override it. Diagnostics use signs and underlines and do not update
+while typing.
+
+Completion is offered as you type, with documentation and an inline preview
+after selection. **Ctrl+n / Ctrl+p** select; **Enter** accepts the selected item;
+**Ctrl+e** dismisses. With nothing selected, Enter inserts a newline with paired
+indentation. Tab never accepts suggestions. **Ctrl+Space**
+requests completion manually. Tab moves between placeholders only after you
+have explicitly accepted a snippet; elsewhere it indents. **Space u c** toggles
+automatic completion menus for this buffer.
+
+Pairs insert closing delimiters, skip an existing closer when you type it,
+and delete both sides of an empty pair with Backspace. Enter inside `[]`, `{}`,
+or `()` makes room for an indented body and moves the closer below. Python
+hanging indents use four spaces, and closing delimiters align with the opening
+statement. Triple quotes work for docstrings. **Space u p** toggles pairing.
 
 | Keys | Action |
 | --- | --- |
 | Space c f | Format now |
 | Space c F | Toggle formatting on save for this buffer |
+| K | Hover documentation |
+| gd / grr | Definition / references |
+| Space c r / Space c a | Rename / code action |
+| Space c o | Organize imports with Ruff (explicitly requested) |
+| Ctrl+s or Ctrl+g, s (Insert mode) | Function signature help |
+| Space c d / Space c D | Read diagnostic / list diagnostics |
+| Space u d / Space u h | Toggle diagnostics / inlay hints for this buffer |
 
 For a deliberate exception to formatting, use Space c F. The toggle resets
 when the buffer is recreated. `:ConformInfo` shows the selected formatter and
@@ -95,7 +120,7 @@ advanced configuration and adapter behavior.
 
 Space p i opens or returns to a persistent Python interpreter for this project.
 Use it like a normal Python REPL, including `help()` and `dir()`. Press Escape
-twice to return to Terminal-Normal mode and use native Ctrl+w window commands
+twice to return to Terminal-Normal mode and use Ctrl+h/j/k/l
 to return to your file.
 
 In a Python file, Space p s sends the current line. In Visual mode it sends

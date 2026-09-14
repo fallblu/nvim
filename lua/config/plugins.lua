@@ -44,6 +44,8 @@ require("lazy").setup({
 				{ "<leader>p", group = "Python" },
 				{ "<leader>s", group = "Search" },
 				{ "<leader>t", group = "Terminals" },
+				{ "<leader>u", group = "Editing toggles" },
+				{ "<leader>w", group = "Windows" },
 				{ "gr", group = "LSP" },
 			},
 		},
@@ -54,7 +56,20 @@ require("lazy").setup({
 		config = function()
 			local pick = require("mini.pick")
 			local project = require("config.project")
-			pick.setup({ window = { config = { border = "rounded" } } })
+			pick.setup({
+				mappings = {
+					choose_in_split = "<C-x>",
+					choose_in_vsplit = "<C-v>",
+					choose_in_tabpage = "<C-t>",
+				},
+				window = {
+					config = {
+						border = "rounded",
+						footer = " C-v: right | C-x: below | Tab: preview ",
+						footer_pos = "center",
+					},
+				},
+			})
 
 			vim.keymap.set("n", "<leader><space>", function()
 				pick.builtin.files({ tool = "rg" }, { source = { cwd = project.root() } })
@@ -64,6 +79,21 @@ require("lazy").setup({
 			end, { desc = "Search project text" })
 			vim.keymap.set("n", "<leader>,", pick.builtin.buffers, { desc = "Choose buffer" })
 			vim.keymap.set("n", "<leader>sh", pick.builtin.help, { desc = "Search help" })
+		end,
+	},
+	{
+		"saghen/blink.cmp",
+		version = "v1.10.2", -- Compatible with Neovim 0.11; reviewed acceptance behavior.
+		dependencies = { "rafamadriz/friendly-snippets" },
+		opts = function()
+			return require("config.completion")
+		end,
+	},
+	{
+		"windwp/nvim-autopairs",
+		-- Load the toggle and Enter guard even before the first InsertEnter.
+		config = function()
+			require("config.pairs")
 		end,
 	},
 	{
@@ -88,7 +118,7 @@ require("lazy").setup({
 	},
 	{
 		"neovim/nvim-lspconfig",
-		dependencies = { { "mason-org/mason.nvim", opts = {} } },
+		dependencies = { { "mason-org/mason.nvim", opts = {} }, "saghen/blink.cmp" },
 		config = function()
 			require("config.lsp")
 		end,

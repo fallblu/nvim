@@ -11,6 +11,16 @@ vim.opt.undofile = true
 vim.opt.expandtab = true
 vim.opt.shiftwidth = 2
 vim.opt.softtabstop = -1
+vim.opt.autoindent = true
+-- Also keep manually invoked native completion from inserting a selection.
+vim.opt.completeopt = { "menu", "menuone", "noselect", "noinsert" }
+-- Four-space hanging indents; closing delimiters align with their opening line.
+vim.g.python_indent = {
+	open_paren = "shiftwidth()",
+	nested_paren = "shiftwidth()",
+	continue = "shiftwidth()",
+	closed_paren_align_last_line = false,
+}
 
 -- Appearance and predictable split placement.
 vim.opt.termguicolors = true
@@ -28,6 +38,7 @@ vim.opt.smartcase = true
 
 require("config.plugins")
 require("config.terminal")
+require("config.keymaps")
 
 vim.keymap.set("n", "<leader>?", function()
 	vim.cmd.edit(vim.fn.fnameescape(vim.fn.stdpath("config") .. "/README.md"))
