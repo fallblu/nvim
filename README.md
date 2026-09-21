@@ -178,8 +178,9 @@ The ordinary `uv run` and `make` commands remain useful in project shells.
 
 ## C programs
 
-gcc, make, and gdb come from Ubuntu packages; clangd, clang-format, and the
-codelldb debug adapter come from Mason. C files format with clang-format on
+gcc, make, gdb, Bear, and Valgrind come from Ubuntu packages; clangd,
+clang-format, and the codelldb debug adapter come from Mason. Make runs
+through Bear, which records compile commands for clangd. C files format with clang-format on
 save, using the project's `.clang-format` or the shared
 `styles/clang-format.yaml`; Space c f and Space c F work as for Python.
 
@@ -187,6 +188,7 @@ save, using the project's `.clang-format` or the shared
 | --- | --- |
 | Space m b | Build: make in the nearest Makefile directory, else gcc for this file |
 | Space m r / Space m R | Build and run the program below, without / with arguments |
+| Space m v / Space m V | Build without sanitizers and run under Valgrind, without / with arguments |
 | Space m p | Choose the program to run or debug when make builds something else |
 | Space m m | Run a make target such as `clean` |
 | Space m q | Show / hide the build diagnostics list |
@@ -314,8 +316,9 @@ development branch requires Neovim 0.11.7 or later.
 Use `:Lazy` to inspect plugins and explicitly update them; `:Lazy restore`
 restores locked revisions. Use `:Mason` for standalone language servers,
 formatters, and debug adapters. On another machine, install Neovim 0.11.3+,
-Git, ripgrep, uv, and the C toolchain (Ubuntu: `build-essential`, `gdb`, and
-`manpages-dev`); launch once to install plugins, then run:
+Git, ripgrep, uv, and the C toolchain (Ubuntu: `build-essential`, `gdb`,
+`manpages-dev`, `bear`, and `valgrind`); launch once to install plugins, then
+run:
 
 ```vim
 :MasonInstall lua-language-server basedpyright ruff debugpy clangd clang-format codelldb
@@ -328,4 +331,5 @@ To check editing behavior after changes, run `python3 tests/editor_workflow.py`
 from this directory (requires the Python `pynvim` package). It launches a separate
 Neovim instance and uses temporary files and a temporary Python environment to
 exercise pairing, indentation, completion acceptance, Python and C language
-support, formatting, C builds and runs, and window/picker actions. It does not edit project files.
+support, formatting, C builds, runs, and Valgrind checks, and window/picker
+actions. It does not edit project files.

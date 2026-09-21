@@ -6,12 +6,11 @@ Space ? opens the main configuration guide; Space m h opens this page.
 ## Tools
 
 Ubuntu packages supply gcc 15, GNU make, gdb, and the C library manual
-pages. Mason supplies the tools Neovim talks to: clangd (language server),
-clang-format, and codelldb (debug adapter); `:Mason` lists them. Two optional
-packages are worth adding later with `sudo apt install valgrind bear`:
-Valgrind checks memory use of programs built without sanitizers, and Bear
-(`bear -- make`) records a project's exact compile commands so clangd can read
-them from `compile_commands.json`.
+pages, plus Bear and Valgrind. Mason supplies the tools Neovim talks to:
+clangd (language server), clang-format, and codelldb (debug adapter); `:Mason`
+lists them. Make runs through Bear, which records each compile command in
+`compile_commands.json` so clangd checks a project with its real flags, and
+Space m v runs a program under Valgrind's memory checker.
 
 ## Editing
 
@@ -52,6 +51,7 @@ reindents a line and `=` reindents a Visual selection.
 | Space m b | Save and build: make, or gcc for this file alone |
 | Space m r | Build, then run the program in a terminal below |
 | Space m R | Build, then run the program with arguments |
+| Space m v / Space m V | Build without sanitizers, then run under Valgrind, without / with arguments |
 | Space m p | Choose the program to run or debug for this project |
 | Space m m | Run a make target, such as `clean` |
 | Space m q | Show / hide the build diagnostics list |
@@ -69,6 +69,13 @@ errors fill the quickfix list, which opens below whenever there are any; the
 cursor stays in your file. Press Enter on an entry to jump to it, or use `]q`
 and `[q`. A failure that produces no located diagnostic, such as a missing
 make target, is shown as a message instead.
+
+Make runs through Bear, which records every compile command in
+`compile_commands.json` beside the Makefile. clangd then checks those files
+with the project's real flags rather than the fallback ones, and it restarts
+for that project whenever a build changes the recorded commands. The file is
+generated, so keep it out of version control; the starter's `.gitignore`
+already does.
 
 Space m r runs the program in a terminal below, in Insert mode so you can
 type input for `scanf` and friends. Press Esc twice for Terminal-Normal mode,
@@ -97,12 +104,48 @@ shorter: `hello.c:9:15: runtime error: signed integer overflow`. These checks
 make the program slower; for a fast build, compile in a project terminal with
 `gcc -O2 -o hello hello.c` or give a Makefile its own `CFLAGS`.
 
+### Valgrind
+
+Space m v builds a copy of the program without sanitizers, `hello.valgrind`
+beside `hello`, and runs it under Valgrind's memory checker in the terminal
+below; Space m V asks for arguments first. The sanitizers and Valgrind cannot
+share a program, so a Makefile project is rebuilt with `make -B SANITIZE=0`,
+copied, and then rebuilt normally again. The starter Makefile understands
+`SANITIZE`; give your own Makefiles the same lines:
+
+```make
+SANITIZE ?= 1
+ifeq ($(SANITIZE),1)
+CFLAGS += -fsanitize=address,undefined
+endif
+```
+
+Valgrind is slower than the sanitizers but reports mistakes they miss, above
+all reading memory that was never written:
+
+```
+==4242== Conditional jump or move depends on uninitialised value(s)
+==4242==    at 0x...: main (hello.c:6)
+==4242==  Uninitialised value was created by a heap allocation
+==4242==    at 0x...: malloc (vg_replace_malloc.c:...)
+==4242==    by 0x...: main (hello.c:5)
+```
+
+Each report ends with the line in your file. `ERROR SUMMARY: 0 errors` and
+`All heap blocks were freed` mean a clean run. The sanitizers remain the
+everyday check: they are faster and also catch stack overruns, which Valgrind
+does not see.
+
 A program spanning several files gets its own directory and Makefile. This one
 builds `calc` from two sources, rebuilding what changed:
 
 ```make
 CC = gcc
-CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -g -O0 -fsanitize=address,undefined
+CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -g -O0
+SANITIZE ?= 1
+ifeq ($(SANITIZE),1)
+CFLAGS += -fsanitize=address,undefined
+endif
 objects = main.o list.o
 
 calc: $(objects)
@@ -112,7 +155,7 @@ main.o: main.c list.h
 list.o: list.c list.h
 
 clean:
-	rm -f calc $(objects)
+	rm -f calc calc.valgrind $(objects)
 
 .PHONY: clean
 ```
@@ -166,7 +209,7 @@ page, `gO` lists the page's sections, and Ctrl+o returns.
 | File | Purpose |
 | --- | --- |
 | `hello.c` | A first program to run and change |
-| `Makefile` | Builds every `.c` file in the tree into a program of the same name |
+| `Makefile` | Builds every `.c` file in the tree into a program of the same name; `SANITIZE=0` leaves the sanitizers out |
 | `.clang-format` | The project's formatting style, the same as the shared one |
 | `.gitignore` | Keeps built programs out of version control |
 
@@ -188,8 +231,10 @@ creates the folder on the first save.
    it, and run again.
 3. Declare `int values[3];` and assign `values[3] = 1;`. Run the program and
    read the AddressSanitizer report down to the `#0` line naming your line.
-4. Set a breakpoint inside a loop with Space d b, start with Space d c, inspect
+4. Print an `int` from `malloc` without assigning it first. The sanitized run
+   prints a meaningless number; Space m v reports the uninitialised value.
+5. Set a breakpoint inside a loop with Space d b, start with Space d c, inspect
    a variable with Space d e, step with Space d o, and end with Space d q.
-5. Put the cursor on `printf` and press Space m k. Scroll, then press `q`.
+6. Put the cursor on `printf` and press Space m k. Scroll, then press `q`.
 
 Work through one loop until it feels familiar before trying every command.

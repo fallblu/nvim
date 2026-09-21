@@ -329,6 +329,47 @@ def main():
                 "Manual page missing",
             )
             check("Space m k opens the manual page for the word under the cursor")
+
+            # Valgrind runs a sanitizer-free copy; make runs through Bear for clangd.
+            n.command("edit! " + str(hello))
+            keys(" mv")
+            wait(
+                'return vim.bo.buftype == "terminal" and vim.iter(vim.api.nvim_buf_get_lines(0, 0, -1, false)):any(function(l) return l:find("ERROR SUMMARY: 0 errors", 1, true) ~= nil end)',
+                "Valgrind summary missing",
+                timeout=30,
+            )
+            keys("<Esc><Esc>")
+            assert (c_dir / "hello.valgrind").exists()
+            check("Space m v builds without sanitizers and runs Valgrind")
+            mk = project / "mk"
+            mk.mkdir()
+            (mk / "Makefile").write_text(
+                "CFLAGS = -g -DGREETING=1\napp: main.c\n\t$(CC) $(CFLAGS) -o app main.c\n"
+            )
+            (mk / "main.c").write_text(
+                '#ifdef GREETING\n#warning "GREETING set"\n#else\n#error "GREETING missing"\n#endif\n'
+                "int main(void) {\n    return GREETING;\n}\n"
+            )
+            n.command("edit! " + str(mk / "main.c"))
+            wait(
+                'return vim.iter(vim.diagnostic.get(0)):any(function(d) return d.message:find("GREETING missing", 1, true) ~= nil end)',
+                "Missing clangd error before the compile database exists",
+                timeout=30,
+            )
+            keys(" mb")
+            wait(
+                f'return vim.fn.executable("{mk / "app"}") == 1',
+                "make did not build the program",
+            )
+            assert "-DGREETING=1" in (mk / "compile_commands.json").read_text()
+            wait(
+                'return vim.iter(vim.diagnostic.get(0)):any(function(d) return d.message:find("GREETING set", 1, true) ~= nil end)',
+                "clangd did not pick up the compile database",
+                timeout=30,
+            )
+            check(
+                "Space m b runs make through Bear and clangd adopts the recorded flags"
+            )
             assert not lua("return vim.v.errmsg"), n.command_output("messages")
         finally:
             n.input("<C-c><Esc>")
