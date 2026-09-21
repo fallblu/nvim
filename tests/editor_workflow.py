@@ -1,4 +1,4 @@
-"""Exercise real Neovim input and Python LSPs. Requires installed plugins/tools and pynvim.
+"""Exercise real Neovim input and the Python and C language tools. Requires installed plugins/tools and pynvim.
 Run from this checkout: python3 tests/editor_workflow.py
 All edited files, environments, caches, and logs are temporary.
 """
@@ -274,6 +274,61 @@ def main():
                     > n.api.win_get_position(original)[axis]
                 )
             check("file picker opens chosen files right and below")
+
+            # C: headers are C, clangd warns with -Wall, clang-format on save, build, run, man.
+            c_dir = project / "c"
+            c_dir.mkdir()
+            hello = c_dir / "hello.c"
+            hello.write_text(
+                '#include <stdio.h>\nint main(void){int unused;printf("hi from c\\n");return 0;}\n'
+            )
+            (c_dir / "util.h").write_text("int add(int a, int b);\n")
+            n.command("only")
+            n.command("edit! " + str(c_dir / "util.h"))
+            assert lua("return {vim.bo.filetype, vim.bo.shiftwidth}") == ["c", 4]
+            n.command("edit! " + str(hello))
+            wait(
+                'return #vim.lsp.get_clients({bufnr=0, name="clangd"}) == 1',
+                "clangd did not attach",
+            )
+            assert lua('return vim.fn.exists(":LspClangdSwitchSourceHeader")') == 2
+            wait(
+                'return vim.iter(vim.diagnostic.get(0)):any(function(d) return d.message:lower():find("unused") ~= nil end)',
+                "Missing clangd -Wall warning",
+                timeout=30,
+            )
+            check("header files are C; clangd attaches and reports -Wall warnings")
+            n.command("write")
+            assert lines()[1:3] == ["int main(void) {", "    int unused;"], lines()
+            check("clang-format on save with the shared four-space style")
+            keys(" mb")
+            wait(
+                f'return vim.fn.executable("{c_dir / "hello"}") == 1',
+                "Build produced no program",
+            )
+            quickfix = lua("return vim.fn.getqflist()")
+            assert any("unused" in item["text"] for item in quickfix), quickfix
+            assert lua("return vim.bo.filetype") == "c", (
+                "Focus did not return to the source"
+            )
+            check(
+                "Space m b compiles the current file; gcc warnings fill the quickfix list"
+            )
+            keys(" mr")
+            wait(
+                'return vim.bo.buftype == "terminal" and vim.iter(vim.api.nvim_buf_get_lines(0, 0, -1, false)):any(function(l) return l:find("hi from c", 1, true) ~= nil end)',
+                "Program output missing",
+            )
+            keys("<Esc><Esc>")
+            check("Space m r runs the program in a project terminal")
+            n.command("edit! " + str(hello))
+            n.current.window.cursor = (4, 4)
+            keys(" mk")
+            wait(
+                'return vim.api.nvim_buf_get_name(0):find("man://printf", 1, true) ~= nil',
+                "Manual page missing",
+            )
+            check("Space m k opens the manual page for the word under the cursor")
             assert not lua("return vim.v.errmsg"), n.command_output("messages")
         finally:
             n.input("<C-c><Esc>")

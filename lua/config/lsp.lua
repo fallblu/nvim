@@ -52,6 +52,20 @@ vim.lsp.config("ruff", {
 	end,
 })
 
+-- clangd also waits for a filename; without a compile database it uses these flags.
+vim.lsp.config("clangd", {
+	cmd = { "clangd", "--background-index", "--clang-tidy", "--completion-style=detailed" },
+	root_dir = function(buf, on_dir)
+		local path = vim.api.nvim_buf_get_name(buf)
+		if path ~= "" and vim.bo[buf].buftype == "" then
+			on_dir(require("config.c").root(buf))
+		end
+	end,
+	init_options = { fallbackFlags = { "-std=c17", "-Wall", "-Wextra", "-Wpedantic" } },
+	-- Plain names for function completions, as with Python: type ( to start a call.
+	capabilities = { textDocument = { completion = { completionItem = { snippetSupport = false } } } },
+})
+
 vim.lsp.config("lua_ls", {
 	on_init = function(client)
 		-- Neovim API knowledge belongs to this configuration, not every Lua project.
@@ -111,6 +125,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
 				)
 			end, { buffer = event.buf, desc = "Toggle inlay hints for this buffer" })
 		end
+		if client.name == "clangd" then
+			vim.keymap.set("n", "<leader>ch", function()
+				vim.cmd.LspClangdSwitchSourceHeader()
+			end, { buffer = event.buf, desc = "Switch between C source and header" })
+		end
 		if client.name == "ruff" then
 			vim.keymap.set("n", "<leader>co", function()
 				vim.lsp.buf.code_action({
@@ -126,13 +145,14 @@ vim.api.nvim_create_autocmd("LspAttach", {
 	end,
 })
 
-vim.lsp.enable({ "lua_ls", "basedpyright", "ruff" })
+vim.lsp.enable({ "lua_ls", "basedpyright", "ruff", "clangd" })
 
 vim.api.nvim_create_autocmd("BufWritePost", {
-	group = vim.api.nvim_create_augroup("vanilla_python_first_save", { clear = true }),
+	group = vim.api.nvim_create_augroup("vanilla_first_save", { clear = true }),
 	callback = function(event)
-		if vim.bo[event.buf].filetype == "python" and #vim.lsp.get_clients({ bufnr = event.buf }) == 0 then
-			-- :setfiletype python on an unnamed buffer precedes its first usable file URI.
+		local filetype = vim.bo[event.buf].filetype
+		if (filetype == "python" or filetype == "c") and #vim.lsp.get_clients({ bufnr = event.buf }) == 0 then
+			-- :setfiletype on an unnamed buffer precedes its first usable file URI.
 			vim.api.nvim_exec_autocmds("FileType", { group = "nvim.lsp.enable", buffer = event.buf, modeline = false })
 		end
 	end,

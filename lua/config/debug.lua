@@ -9,6 +9,16 @@ dap.adapters.python = {
 }
 dap.defaults.python.terminal_win_cmd = "botright 12new"
 
+dap.adapters.codelldb = {
+	type = "server",
+	port = "${port}",
+	executable = {
+		command = vim.fn.stdpath("data") .. "/mason/bin/codelldb",
+		args = { "--port", "${port}" },
+	},
+}
+dap.defaults.codelldb.terminal_win_cmd = "botright 12new"
+
 local function configuration(name)
 	return {
 		type = "python",
@@ -38,6 +48,29 @@ end
 module.args = with_args.args
 dap.configurations.python = { current, with_args, module }
 
+local function c_configuration(name)
+	return {
+		type = "codelldb",
+		request = "launch",
+		name = name,
+		-- Builds first; a failed build cancels the session.
+		program = function()
+			return require("config.c").program() or dap.ABORT
+		end,
+		cwd = function()
+			return require("config.c").root()
+		end,
+		-- LeakSanitizer cannot run under a debugger; the other sanitizer checks remain.
+		env = { ASAN_OPTIONS = "detect_leaks=0" },
+		stopOnEntry = false,
+	}
+end
+
+local c_program = c_configuration("C: build and debug this file's program")
+local c_with_args = c_configuration("C: build and debug with arguments")
+c_with_args.args = with_args.args
+dap.configurations.c = { c_program, c_with_args }
+
 function M.test(kind)
 	local ctx = require("config.python").test_target(kind)
 	if ctx then
@@ -59,7 +92,7 @@ vim.keymap.set("n", "<leader>dB", function()
 	end)
 end, { desc = "Set conditional breakpoint" })
 vim.keymap.set("n", "<leader>dc", function()
-	if not dap.session() and vim.bo.filetype == "python" then
+	if not dap.session() and (vim.bo.filetype == "python" or vim.bo.filetype == "c") then
 		vim.cmd.update()
 	end
 	dap.continue()

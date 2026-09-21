@@ -1,0 +1,3 @@
+# Used for C files whose project has no .clang-format of its own.
+BasedOnStyle: LLVM
+IndentWidth: 4
