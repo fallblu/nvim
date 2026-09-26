@@ -1,6 +1,6 @@
 # Neovim, one step at a time
 
-A small configuration for Python and C development and editing Lua configuration.
+A small configuration for Python and C++ development and editing Lua configuration.
 Kanagawa Dragon supplies the colors; relative line numbers remain enabled.
 Neovim's native motions and window controls remain available.
 
@@ -25,7 +25,7 @@ prefix. Try **Space** for this configuration's shortcuts, **Space w** for
 window commands, or **g r** for LSP actions. Keep typing when you
 already know a sequence; there is no need to wait for the popup.
 
-Leader groups are **c** for code, **d** for debugging, **m** for C programs,
+Leader groups are **c** for code, **d** for debugging, **m** for C++ programs,
 **p** for Python, **s** for search, **t** for terminals, **u** for editing toggles,
 and **w** for windows.
 The popup uses Kanagawa's colors, a rounded border, and plain key labels.
@@ -55,7 +55,7 @@ of the split keys; **Shift+Tab** shows all picker keys. Ctrl+x replaces the old
 Ctrl+s picker binding, which some terminals intercept for flow control.
 These split actions also work on project text search results.
 
-## Python, C, and Lua language support
+## Python, C++, and Lua language support
 
 Lua Language Server starts automatically for Lua files and learns Neovim's
 API when editing this configuration. Other Lua projects retain their own
@@ -63,8 +63,8 @@ server settings. Python uses Basedpyright for completions, documentation,
 navigation, refactoring, and basic type checking, plus Ruff for linting and
 code actions. Both use the current file's project root; Basedpyright detects
 its `.venv/bin/python`. Project type-checking settings can override the basic
-default. C uses clangd for the same features, with `-Wall -Wextra -Wpedantic`
-warnings and clang-tidy checks; `.h` files count as C. Diagnostics show signs
+default. C++ uses clangd for the same features, with `-std=c++23 -Wall -Wextra
+-Wpedantic` warnings and clang-tidy checks; `.h` files count as C++. Diagnostics show signs
 and underlines, without inline messages or popups while typing. Neovim's LSP
 client exposes these actions:
 
@@ -83,7 +83,7 @@ client exposes these actions:
 | Space c D | List diagnostics from loaded files in the quickfix list |
 | Space c r / Space c a | Rename / code actions (aliases for grn / gra) |
 | Space c o | Organize Python imports explicitly with Ruff |
-| Space c h | Switch between a C source file and its header |
+| Space c h | Switch between a C++ source file and its header |
 | Ctrl+s or Ctrl+g, s (Insert mode) | Show function parameters/signature |
 | Space u h | Toggle inlay type/parameter hints, when supported (initially off) |
 | Space u d | Toggle diagnostics for this buffer |
@@ -114,8 +114,8 @@ With nothing selected, Enter inserts a newline with paired indentation.
 Tab, ordinary typing, and moving the cursor never accept suggestions. Tab indents
 normally outside an active snippet. Accepting an auto-import suggestion with Enter can
 add its import; merely browsing it cannot. Function completions do not append
-parentheses automatically: type `(` to start a call. Accepting a C library
-function can add its `#include` the same way. Inline previews come from the
+parentheses automatically: type `(` to start a call. Accepting a C++ standard
+library name can add its `#include` the same way. Inline previews come from the
 completion sources above, without an AI service.
 
 **Space u c** switches this buffer between automatic menus and manual-only
@@ -141,8 +141,9 @@ values = [
 
 Python uses four spaces for blocks and hanging indents, including nested
 lists/dictionaries and multiline calls. Closing delimiters on their own line
-align with their opening statement. C also uses four spaces, with `case`
-labels level with their `switch`. `==` reindents a line; `=` in Visual mode
+align with their opening statement. C++ also uses four spaces, with `case`
+labels level with their `switch`, access specifiers level with their class,
+and unindented namespace contents. `==` reindents a line; `=` in Visual mode
 reindents a selection. Visual `<` / `>` keep the selection for repeated shifts.
 **Space u p** toggles automatic pairing globally. Paste retains Neovim's native
 paste handling. Esc in Normal mode also clears search highlighting.
@@ -176,17 +177,17 @@ the current Python buffer first; sending to the REPL uses the selected text
 without saving. Other modified buffers keep their unsaved changes.
 The ordinary `uv run` and `make` commands remain useful in project shells.
 
-## C programs
+## C++ programs
 
-gcc, make, gdb, Bear, and Valgrind come from Ubuntu packages; clangd,
+g++, make, gdb, Bear, and Valgrind come from Ubuntu packages; clangd,
 clang-format, and the codelldb debug adapter come from Mason. Make runs
-through Bear, which records compile commands for clangd. C files format with clang-format on
+through Bear, which records compile commands for clangd. C++ files format with clang-format on
 save, using the project's `.clang-format` or the shared
 `styles/clang-format.yaml`; Space c f and Space c F work as for Python.
 
 | Keys | Action |
 | --- | --- |
-| Space m b | Build: make in the nearest Makefile directory, else gcc for this file |
+| Space m b | Build: make in the nearest Makefile directory, else g++ for this file |
 | Space m r / Space m R | Build and run the program below, without / with arguments |
 | Space m v / Space m V | Build without sanitizers and run under Valgrind, without / with arguments |
 | Space m p | Choose the program to run or debug when make builds something else |
@@ -195,12 +196,12 @@ save, using the project's `.clang-format` or the shared
 | `]q` / `[q` | Next / previous build diagnostic |
 | Space m k | Manual page for the word under the cursor |
 | Space d b / Space d c | Toggle breakpoint / build and debug the program |
-| Space m h | Open the C workflow guide |
+| Space m h | Open the C++ workflow guide |
 
 Without a Makefile, a file compiles alone with warnings, debug information,
 and the address and undefined-behavior sanitizers, which report memory
 mistakes as the program runs. Use **Space m h** for the full
-[C guide](docs/c.md), including debugging and the `~/learn-c` starter project.
+[C++ guide](docs/cpp.md), including debugging and starting a practice project.
 
 ## Windows and buffers
 
@@ -280,15 +281,15 @@ See the [official tmux guide](https://github.com/tmux/tmux/wiki/Getting-Started)
 | `init.lua` | Editor options and startup order |
 | `lua/config/plugins.lua` | Plugin installation, appearance, and pickers |
 | `lua/config/project.lua` | Project root selection |
-| `lua/config/lsp.lua` | Python/C/Lua language servers, diagnostics, and LSP actions |
+| `lua/config/lsp.lua` | Python/C++/Lua language servers, diagnostics, and LSP actions |
 | `lua/config/completion.lua` | Explicit completion acceptance, documentation, and previews |
 | `lua/config/pairs.lua` | Automatic pairs and safe Enter behavior |
 | `lua/config/keymaps.lua` | Window, buffer, and general editing shortcuts |
-| `lua/config/format.lua` | Python and C formatting and the per-buffer save toggle |
+| `lua/config/format.lua` | Python and C++ formatting and the per-buffer save toggle |
 | `lua/config/python.lua` | Pytest targets, file execution, and project REPLs |
-| `lua/config/c.lua` | C builds, program runs, make targets, and manual pages |
-| `after/ftplugin/c.lua` | C indentation settings |
-| `styles/clang-format.yaml` | C formatting style for projects without `.clang-format` |
+| `lua/config/cpp.lua` | C++ builds, program runs, make targets, and manual pages |
+| `after/ftplugin/cpp.lua` | C++ indentation settings |
+| `styles/clang-format.yaml` | C++ formatting style for projects without `.clang-format` |
 | `lua/config/debug.lua` | Debug adapter, launch choices, and debugger controls |
 | `lua/config/terminal.lua` | Creating embedded project shells |
 | `scripts/work` | Creating/resuming project tmux sessions |
@@ -316,8 +317,8 @@ development branch requires Neovim 0.11.7 or later.
 Use `:Lazy` to inspect plugins and explicitly update them; `:Lazy restore`
 restores locked revisions. Use `:Mason` for standalone language servers,
 formatters, and debug adapters. On another machine, install Neovim 0.11.3+,
-Git, ripgrep, uv, and the C toolchain (Ubuntu: `build-essential`, `gdb`,
-`manpages-dev`, `bear`, and `valgrind`); launch once to install plugins, then
+Git, ripgrep, uv, and the C++ toolchain (Ubuntu: `build-essential`, `gdb`,
+`manpages-dev`, `bear`, `valgrind`, and optionally `libstdc++-15-doc`); launch once to install plugins, then
 run:
 
 ```vim
@@ -330,6 +331,6 @@ configuration changes to load the new plugins, mappings, and language servers.
 To check editing behavior after changes, run `python3 tests/editor_workflow.py`
 from this directory (requires the Python `pynvim` package). It launches a separate
 Neovim instance and uses temporary files and a temporary Python environment to
-exercise pairing, indentation, completion acceptance, Python and C language
-support, formatting, C builds, runs, and Valgrind checks, and window/picker
+exercise pairing, indentation, completion acceptance, Python and C++ language
+support, formatting, C++ builds, runs, and Valgrind checks, and window/picker
 actions. It does not edit project files.

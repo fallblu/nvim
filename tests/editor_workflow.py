@@ -1,4 +1,4 @@
-"""Exercise real Neovim input and the Python and C language tools. Requires installed plugins/tools and pynvim.
+"""Exercise real Neovim input and the Python and C++ language tools. Requires installed plugins/tools and pynvim.
 Run from this checkout: python3 tests/editor_workflow.py
 All edited files, environments, caches, and logs are temporary.
 """
@@ -275,17 +275,27 @@ def main():
                 )
             check("file picker opens chosen files right and below")
 
-            # C: headers are C, clangd warns with -Wall, clang-format on save, build, run, man.
-            c_dir = project / "c"
-            c_dir.mkdir()
-            hello = c_dir / "hello.c"
+            # C++: headers are C++, clangd warns with -Wall, clang-format on save, build, run, man.
+            cpp_dir = project / "cpp"
+            cpp_dir.mkdir()
+            hello = cpp_dir / "hello.cpp"
             hello.write_text(
-                '#include <stdio.h>\nint main(void){int unused;printf("hi from c\\n");return 0;}\n'
+                '#include <cstdio>\nint main(){int unused;std::printf("hi from cpp\\n");return 0;}\n'
             )
-            (c_dir / "util.h").write_text("int add(int a, int b);\n")
+            (cpp_dir / "util.h").write_text("int add(int a, int b);\n")
             n.command("only")
-            n.command("edit! " + str(c_dir / "util.h"))
-            assert lua("return {vim.bo.filetype, vim.bo.shiftwidth}") == ["c", 4]
+            n.command("edit! " + str(cpp_dir / "util.h"))
+            assert lua("return {vim.bo.filetype, vim.bo.shiftwidth}") == ["cpp", 4]
+            set_lines(["namespace demo {", "class Box {", "public:", "int n;", "};", "}"])
+            keys("gg=G")
+            assert lines() == [
+                "namespace demo {",
+                "class Box {",
+                "public:",
+                "    int n;",
+                "};",
+                "}",
+            ], lines()
             n.command("edit! " + str(hello))
             wait(
                 'return #vim.lsp.get_clients({bufnr=0, name="clangd"}) == 1',
@@ -297,32 +307,32 @@ def main():
                 "Missing clangd -Wall warning",
                 timeout=30,
             )
-            check("header files are C; clangd attaches and reports -Wall warnings")
+            check("header files are C++; clangd attaches and reports -Wall warnings")
             n.command("write")
-            assert lines()[1:3] == ["int main(void) {", "    int unused;"], lines()
+            assert lines()[1:3] == ["int main() {", "    int unused;"], lines()
             check("clang-format on save with the shared four-space style")
             keys(" mb")
             wait(
-                f'return vim.fn.executable("{c_dir / "hello"}") == 1',
+                f'return vim.fn.executable("{cpp_dir / "hello"}") == 1',
                 "Build produced no program",
             )
             quickfix = lua("return vim.fn.getqflist()")
             assert any("unused" in item["text"] for item in quickfix), quickfix
-            assert lua("return vim.bo.filetype") == "c", (
+            assert lua("return vim.bo.filetype") == "cpp", (
                 "Focus did not return to the source"
             )
             check(
-                "Space m b compiles the current file; gcc warnings fill the quickfix list"
+                "Space m b compiles the current file; g++ warnings fill the quickfix list"
             )
             keys(" mr")
             wait(
-                'return vim.bo.buftype == "terminal" and vim.iter(vim.api.nvim_buf_get_lines(0, 0, -1, false)):any(function(l) return l:find("hi from c", 1, true) ~= nil end)',
+                'return vim.bo.buftype == "terminal" and vim.iter(vim.api.nvim_buf_get_lines(0, 0, -1, false)):any(function(l) return l:find("hi from cpp", 1, true) ~= nil end)',
                 "Program output missing",
             )
             keys("<Esc><Esc>")
             check("Space m r runs the program in a project terminal")
             n.command("edit! " + str(hello))
-            n.current.window.cursor = (4, 4)
+            n.current.window.cursor = (4, 9)
             keys(" mk")
             wait(
                 'return vim.api.nvim_buf_get_name(0):find("man://printf", 1, true) ~= nil',
@@ -339,18 +349,18 @@ def main():
                 timeout=30,
             )
             keys("<Esc><Esc>")
-            assert (c_dir / "hello.valgrind").exists()
+            assert (cpp_dir / "hello.valgrind").exists()
             check("Space m v builds without sanitizers and runs Valgrind")
             mk = project / "mk"
             mk.mkdir()
             (mk / "Makefile").write_text(
-                "CFLAGS = -g -DGREETING=1\napp: main.c\n\t$(CC) $(CFLAGS) -o app main.c\n"
+                "CXXFLAGS = -g -DGREETING=1\napp: main.cpp\n\t$(CXX) $(CXXFLAGS) -o app main.cpp\n"
             )
-            (mk / "main.c").write_text(
+            (mk / "main.cpp").write_text(
                 '#ifdef GREETING\n#warning "GREETING set"\n#else\n#error "GREETING missing"\n#endif\n'
-                "int main(void) {\n    return GREETING;\n}\n"
+                "int main() {\n    return GREETING;\n}\n"
             )
-            n.command("edit! " + str(mk / "main.c"))
+            n.command("edit! " + str(mk / "main.cpp"))
             wait(
                 'return vim.iter(vim.diagnostic.get(0)):any(function(d) return d.message:find("GREETING missing", 1, true) ~= nil end)',
                 "Missing clangd error before the compile database exists",

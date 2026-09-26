@@ -41,7 +41,7 @@ require("lazy").setup({
 			spec = {
 				{ "<leader>c", group = "Code" },
 				{ "<leader>d", group = "Debug" },
-				{ "<leader>m", group = "C programs" },
+				{ "<leader>m", group = "C++ programs" },
 				{ "<leader>p", group = "Python" },
 				{ "<leader>s", group = "Search" },
 				{ "<leader>t", group = "Terminals" },

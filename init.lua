@@ -1,8 +1,6 @@
 -- Set leaders before loading any plugin or mapping. <leader> means Space.
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
--- Treat .h files as C rather than C++. :help ft-c-syntax
-vim.g.c_syntax_for_h = 1
 
 -- :help 'number' | :help 'relativenumber' | :help 'undofile'
 vim.opt.number = true
@@ -41,7 +39,7 @@ vim.opt.smartcase = true
 require("config.plugins")
 require("config.terminal")
 require("config.keymaps")
-require("config.c")
+require("config.cpp")
 
 vim.keymap.set("n", "<leader>?", function()
 	vim.cmd.edit(vim.fn.fnameescape(vim.fn.stdpath("config") .. "/README.md"))

@@ -6,10 +6,10 @@ local programs, runs = {}, {} -- Chosen programs and run terminals, by project r
 -- Compiler warnings match clangd's inline diagnostics. The sanitizers report
 -- memory errors and undefined behavior while the program runs; Valgrind builds
 -- leave them out because the two cannot run together.
-M.flags = { "-std=c17", "-Wall", "-Wextra", "-Wpedantic", "-g", "-O0" }
+M.flags = { "-std=c++23", "-Wall", "-Wextra", "-Wpedantic", "-g", "-O0" }
 M.sanitizers = { "-fsanitize=address,undefined" }
 
--- gcc and linker diagnostics plus make's directory changes; other lines are dropped.
+-- g++ and linker diagnostics plus make's directory changes; other lines are dropped.
 local errorformat = table.concat({
 	"%f:%l:%c: fatal %trror: %m",
 	"%f:%l:%c: %trror: %m",
@@ -94,8 +94,8 @@ end
 
 local function source(save)
 	local path = vim.api.nvim_buf_get_name(0)
-	if vim.bo.filetype ~= "c" or vim.bo.buftype ~= "" or path == "" then
-		vim.notify("Open a named C file first.", vim.log.levels.WARN)
+	if vim.bo.filetype ~= "cpp" or vim.bo.buftype ~= "" or path == "" then
+		vim.notify("Open a named C++ file first.", vim.log.levels.WARN)
 		return
 	end
 	if save then
@@ -160,10 +160,10 @@ function M.build()
 		return
 	end
 	local program = vim.fn.fnamemodify(path, ":r")
-	local command = vim.list_extend({ "gcc" }, M.flags)
+	local command = vim.list_extend({ "g++" }, M.flags)
 	vim.list_extend(command, M.sanitizers)
 	vim.list_extend(command, { "-o", program, path })
-	if build(command, root, "gcc " .. vim.fn.fnamemodify(path, ":t")) then
+	if build(command, root, "g++ " .. vim.fn.fnamemodify(path, ":t")) then
 		return root, path, program
 	end
 end
@@ -269,9 +269,9 @@ function M.valgrind(with_arguments)
 		build({ "make", "-B" }, root, "make -B", true)
 	else
 		copy = vim.fn.fnamemodify(path, ":r") .. ".valgrind"
-		local command = vim.list_extend({ "gcc" }, M.flags)
+		local command = vim.list_extend({ "g++" }, M.flags)
 		vim.list_extend(command, { "-o", copy, path })
-		if not build(command, root, "gcc " .. vim.fn.fnamemodify(path, ":t") .. " without sanitizers") then
+		if not build(command, root, "g++ " .. vim.fn.fnamemodify(path, ":t") .. " without sanitizers") then
 			return
 		end
 	end
@@ -304,19 +304,21 @@ function M.make(target)
 	if target == "" then
 		return
 	end
-	if vim.bo.filetype == "c" and vim.bo.buftype == "" then
+	if vim.bo.filetype == "cpp" and vim.bo.buftype == "" then
 		vim.cmd.update()
 	end
 	run_make(require("dap.utils").splitstr(target), root, "make " .. target)
 end
 
--- Library documentation: section 3 (functions), then 2 (system calls), then any.
+-- Library documentation: the C++ standard library's pages (section 3cxx, from
+-- Ubuntu's libstdc++ documentation package), then C library functions (3),
+-- system calls (2), and any section.
 function M.man()
 	local word = vim.fn.expand("<cword>")
 	if word == "" then
 		return
 	end
-	for _, args in ipairs({ { "3", word }, { "2", word }, { word } }) do
+	for _, args in ipairs({ { "3cxx", "std::" .. word }, { "3", word }, { "2", word }, { word } }) do
 		if vim.system(vim.list_extend({ "man", "--where" }, args)):wait().code == 0 then
 			vim.cmd.Man({ args = args })
 			return
@@ -325,7 +327,7 @@ function M.man()
 	vim.notify("No manual page for " .. word, vim.log.levels.WARN)
 end
 
-vim.keymap.set("n", "<leader>mb", M.build, { desc = "Build: make, or gcc for this file" })
+vim.keymap.set("n", "<leader>mb", M.build, { desc = "Build: make, or g++ for this file" })
 vim.keymap.set("n", "<leader>mr", function()
 	M.run(false)
 end, { desc = "Build and run the program" })
@@ -353,7 +355,7 @@ vim.keymap.set("n", "<leader>mq", function()
 end, { desc = "Toggle the build diagnostics list" })
 vim.keymap.set("n", "<leader>mk", M.man, { desc = "Manual page for the word under the cursor" })
 vim.keymap.set("n", "<leader>mh", function()
-	vim.cmd.edit(vim.fn.fnameescape(vim.fn.stdpath("config") .. "/docs/c.md"))
-end, { desc = "Open C workflow guide" })
+	vim.cmd.edit(vim.fn.fnameescape(vim.fn.stdpath("config") .. "/docs/cpp.md"))
+end, { desc = "Open C++ workflow guide" })
 
 return M

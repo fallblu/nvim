@@ -1,10 +1,10 @@
 local conform = require("conform")
 local project = require("config.project")
-local formatted = { python = true, c = true }
+local formatted = { python = true, cpp = true }
 local style = vim.fn.stdpath("config") .. "/styles/clang-format.yaml"
 
 conform.setup({
-	formatters_by_ft = { python = { "ruff_format" }, c = { "clang_format" } },
+	formatters_by_ft = { python = { "ruff_format" }, cpp = { "clang_format" } },
 	formatters = {
 		ruff_format = {
 			command = function(_, ctx)

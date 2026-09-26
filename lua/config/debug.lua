@@ -48,17 +48,17 @@ end
 module.args = with_args.args
 dap.configurations.python = { current, with_args, module }
 
-local function c_configuration(name)
+local function cpp_configuration(name)
 	return {
 		type = "codelldb",
 		request = "launch",
 		name = name,
 		-- Builds first; a failed build cancels the session.
 		program = function()
-			return require("config.c").program() or dap.ABORT
+			return require("config.cpp").program() or dap.ABORT
 		end,
 		cwd = function()
-			return require("config.c").root()
+			return require("config.cpp").root()
 		end,
 		-- LeakSanitizer cannot run under a debugger; the other sanitizer checks remain.
 		env = { ASAN_OPTIONS = "detect_leaks=0" },
@@ -66,10 +66,10 @@ local function c_configuration(name)
 	}
 end
 
-local c_program = c_configuration("C: build and debug this file's program")
-local c_with_args = c_configuration("C: build and debug with arguments")
-c_with_args.args = with_args.args
-dap.configurations.c = { c_program, c_with_args }
+local cpp_program = cpp_configuration("C++: build and debug this file's program")
+local cpp_with_args = cpp_configuration("C++: build and debug with arguments")
+cpp_with_args.args = with_args.args
+dap.configurations.cpp = { cpp_program, cpp_with_args }
 
 function M.test(kind)
 	local ctx = require("config.python").test_target(kind)
@@ -92,7 +92,7 @@ vim.keymap.set("n", "<leader>dB", function()
 	end)
 end, { desc = "Set conditional breakpoint" })
 vim.keymap.set("n", "<leader>dc", function()
-	if not dap.session() and (vim.bo.filetype == "python" or vim.bo.filetype == "c") then
+	if not dap.session() and (vim.bo.filetype == "python" or vim.bo.filetype == "cpp") then
 		vim.cmd.update()
 	end
 	dap.continue()

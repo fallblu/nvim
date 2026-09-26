@@ -1,3 +1,5 @@
-# Used for C files whose project has no .clang-format of its own.
+# Used for C++ files whose project has no .clang-format of its own.
 BasedOnStyle: LLVM
 IndentWidth: 4
+# public:, protected:, and private: sit level with their class.
+AccessModifierOffset: -4
