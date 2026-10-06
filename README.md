@@ -54,6 +54,9 @@ a horizontal split. **Ctrl+t** opens in a new tab page. The footer reminds you
 of the split keys; **Shift+Tab** shows all picker keys. Ctrl+x replaces the old
 Ctrl+s picker binding, which some terminals intercept for flow control.
 These split actions also work on project text search results.
+**Ctrl+k** marks or unmarks a result and **Ctrl+a** marks them all;
+**Alt+Enter** then sends the marked files or search matches to the quickfix
+list, where `]q` and `[q` step through them.
 
 ## Python, C++, and Lua language support
 

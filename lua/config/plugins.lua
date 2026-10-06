@@ -62,6 +62,8 @@ require("lazy").setup({
 					choose_in_split = "<C-x>",
 					choose_in_vsplit = "<C-v>",
 					choose_in_tabpage = "<C-t>",
+					-- Ctrl+x now splits, so marking moves to Ctrl+k.
+					mark = "<C-k>",
 				},
 				window = {
 					config = {

@@ -274,6 +274,22 @@ def main():
                     > n.api.win_get_position(original)[axis]
                 )
             check("file picker opens chosen files right and below")
+            n.command("only")
+            keys("  ")
+            keys("picked")
+            wait(
+                "return MiniPick.is_picker_active() and #MiniPick.get_picker_matches().all == 1",
+                "Picker match missing",
+            )
+            keys("<C-k>")
+            wait(
+                "return #MiniPick.get_picker_matches().marked == 1",
+                "Ctrl+k did not mark the match",
+            )
+            keys("<Esc>")
+            wait("return not MiniPick.is_picker_active()", "Picker did not close")
+            assert "Duplicating mapping keys" not in n.command_output("messages")
+            check("Ctrl+k marks picker items without a key conflict")
 
             # C++: headers are C++, clangd warns with -Wall, clang-format on save, build, run, man.
             cpp_dir = project / "cpp"
