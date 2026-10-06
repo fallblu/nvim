@@ -63,9 +63,11 @@ server settings. Python uses Basedpyright for completions, documentation,
 navigation, refactoring, and basic type checking, plus Ruff for linting and
 code actions. Both use the current file's project root; Basedpyright detects
 its `.venv/bin/python`. Project type-checking settings can override the basic
-default. C++ uses clangd for the same features, with `-std=c++23 -Wall -Wextra
--Wpedantic` warnings and clang-tidy checks; `.h` files count as C++. Diagnostics show signs
-and underlines, without inline messages or popups while typing. Neovim's LSP
+default. C++ uses clangd for the same features, with learncpp's recommended
+warnings (`-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow
+-pedantic-errors`) and clang-tidy checks; `.h` files count as C++. Diagnostics
+show signs and underlines; the cursor line's messages appear at its end, and
+nothing pops up while typing. Neovim's LSP
 client exposes these actions:
 
 | Keys | Action |
@@ -290,6 +292,7 @@ See the [official tmux guide](https://github.com/tmux/tmux/wiki/Getting-Started)
 | `lua/config/cpp.lua` | C++ builds, program runs, make targets, and manual pages |
 | `after/ftplugin/cpp.lua` | C++ indentation settings |
 | `styles/clang-format.yaml` | C++ formatting style for projects without `.clang-format` |
+| `templates/cpp/` | Multi-file C++ Makefile and an exercise repository `.gitignore` |
 | `lua/config/debug.lua` | Debug adapter, launch choices, and debugger controls |
 | `lua/config/terminal.lua` | Creating embedded project shells |
 | `scripts/work` | Creating/resuming project tmux sessions |

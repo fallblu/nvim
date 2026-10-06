@@ -63,7 +63,7 @@ vim.lsp.config("clangd", {
 			on_dir(require("config.cpp").root(buf))
 		end
 	end,
-	init_options = { fallbackFlags = { "-std=c++23", "-Wall", "-Wextra", "-Wpedantic" } },
+	init_options = { fallbackFlags = vim.list_extend({ "-std=c++23" }, require("config.cpp").warnings) },
 	-- Plain names for function completions, as with Python: type ( to start a call.
 	capabilities = { textDocument = { completion = { completionItem = { snippetSupport = false } } } },
 })
@@ -83,7 +83,8 @@ vim.lsp.config("lua_ls", {
 vim.diagnostic.config({
 	severity_sort = true,
 	update_in_insert = false,
-	virtual_text = false,
+	-- The cursor line's messages appear at its end; elsewhere, signs and underlines.
+	virtual_text = { current_line = true },
 	virtual_lines = false,
 	float = { border = "rounded", source = "if_many" },
 })

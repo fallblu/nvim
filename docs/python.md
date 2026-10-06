@@ -23,8 +23,8 @@ apply lint fixes. Basedpyright supplies type checking, completion, hover docs,
 signatures, navigation, and rename; Ruff supplies lint diagnostics and code
 actions. Both attach automatically to named Python files. Basedpyright uses
 this project's `.venv` when available, with basic type checking unless project
-settings override it. Diagnostics use signs and underlines and do not update
-while typing.
+settings override it. Diagnostics use signs and underlines, show the cursor
+line's messages at its end, and do not update while typing.
 
 Completion is offered as you type, with documentation and an inline preview
 after selection. **Ctrl+n / Ctrl+p** select; **Enter** accepts the selected item;

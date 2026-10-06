@@ -3,10 +3,14 @@ local terminal = require("config.terminal")
 local M = {}
 local programs, runs = {}, {} -- Chosen programs and run terminals, by project root.
 
--- Compiler warnings match clangd's inline diagnostics. The sanitizers report
--- memory errors and undefined behavior while the program runs; Valgrind builds
--- leave them out because the two cannot run together.
-M.flags = { "-std=c++23", "-Wall", "-Wextra", "-Wpedantic", "-g", "-O0" }
+-- Compiler warnings match clangd's inline diagnostics: learncpp's recommended
+-- set, which also flags lossy and sign-changing conversions and shadowed names,
+-- and rejects compiler extensions. The sanitizers report memory errors and
+-- undefined behavior while the program runs; Valgrind builds leave them out
+-- because the two cannot run together.
+M.warnings = { "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion", "-Wshadow", "-pedantic-errors" }
+M.flags = vim.list_extend({ "-std=c++23" }, M.warnings)
+vim.list_extend(M.flags, { "-g", "-O0" })
 M.sanitizers = { "-fsanitize=address,undefined" }
 
 -- g++ and linker diagnostics plus make's directory changes; other lines are dropped.

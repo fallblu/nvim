@@ -17,9 +17,13 @@ real flags, and Space m v runs a program under Valgrind's memory checker.
 
 clangd attaches to named C++ files: `.cpp`, `.cc`, `.cxx`, `.hpp`, and `.h`,
 since header files count as C++ here. Without a compile database it checks
-files with the same `-std=c++23 -Wall -Wextra -Wpedantic` flags the build
-uses, plus clang-tidy's default checks, so warnings appear while typing and
-again when building. A project can add a `.clangd` file or
+files with the same flags the build uses, plus clang-tidy's default checks,
+so warnings appear while typing and again when building. These are learncpp's
+recommended warnings: `-Wconversion` and `-Wsign-conversion` catch values
+that change on conversion, such as `int i = 3.7;` or `unsigned u = -1;`,
+`-Wshadow` catches an inner name hiding an outer one, and `-pedantic-errors`
+rejects compiler extensions, such as variable-length arrays, that are not
+standard C++. A project can add a `.clangd` file or
 `compile_commands.json` to change that.
 
 Completion offers functions, classes, members, and variables from the included
@@ -70,7 +74,8 @@ With a Makefile in the file's directory or above it, Space m b runs `make`
 in the nearest Makefile's directory. Otherwise it compiles the file by itself:
 
 ```sh
-g++ -std=c++23 -Wall -Wextra -Wpedantic -g -O0 -fsanitize=address,undefined -o hello hello.cpp
+g++ -std=c++23 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -pedantic-errors \
+    -g -O0 -fsanitize=address,undefined -o hello hello.cpp
 ```
 
 The program lands beside its source, `hello` next to `hello.cpp`. Warnings and
@@ -93,7 +98,10 @@ Space m r runs the program in a terminal below, in Insert mode so you can
 type input for `std::cin`. Press Esc twice for Terminal-Normal mode, Ctrl+k
 to return to your file, and `i` in the terminal to type again. Each run reuses
 the visible result window and stops a program still running there; earlier
-output remains available through Space ,.
+output remains available through Space ,. The program runs in the project
+root (the nearest Makefile's directory, else the Git root, else the file's own
+directory), so relative file paths such as `std::ifstream{"input.txt"}` are
+read from there.
 
 For a single-file build, the program is known. For make, Space m r runs the
 program named after the current file, `loops` for `loops.cpp`, when make built
@@ -155,32 +163,21 @@ Each report ends with the line in your file. `ERROR SUMMARY: 0 errors` and
 `All heap blocks were freed` mean a clean run. The sanitizers remain the everyday check: they are faster and
 also catch stack overruns, which Valgrind does not see.
 
-A program spanning several files gets its own directory and Makefile. This one
-builds `calc` from two sources, rebuilding what changed:
+A program spanning several files gets its own directory and Makefile; built
+alone, `main.cpp` would fail to link with `undefined reference` to the
+functions defined in its other files. `templates/cpp/Makefile` links every
+`.cpp` in its directory into `main`, rebuilding what changed, including the
+sources that include an edited header. Copy it into the program's directory:
 
-```make
-CXX = g++
-CXXFLAGS = -std=c++23 -Wall -Wextra -Wpedantic -g -O0
-SANITIZE ?= 1
-ifeq ($(SANITIZE),1)
-CXXFLAGS += -fsanitize=address,undefined
-endif
-objects = main.o list.o
-
-calc: $(objects)
-	$(CXX) $(CXXFLAGS) -o $@ $(objects)
-
-main.o: main.cpp list.hpp
-list.o: list.cpp list.hpp
-
-clean:
-	rm -f calc calc.valgrind $(objects)
-
-.PHONY: clean
+```sh
+mkdir -p ch02/2.8-multiple-files && cp ~/.config/nvim/templates/cpp/Makefile ch02/2.8-multiple-files/
 ```
 
-Recipe lines start with a Tab, which Neovim keeps in Makefiles. Space m b runs
-`make` there, and Space m r asks once which program to run.
+Keep it out of the top of a repository of single-file exercises: the nearest
+Makefile above a file decides how that file builds. Recipe lines start with a
+Tab, which Neovim keeps in Makefiles. Space m b runs `make` there, and Space m
+r from `main.cpp` runs `main`; from another file it asks once which program to
+run, so choose `main` with Space m p.
 
 ## Debugging
 
@@ -248,15 +245,17 @@ int main() {
 
 A single file needs no Makefile: Space m r builds and runs it. New exercises
 can live in folders: `:edit ch1/loops.cpp` then `:write ++p` creates the
-folder on the first save. Add a `.gitignore` for built programs, `*.valgrind`,
-and `compile_commands.json`.
+folder on the first save. Built programs have no extension, so copy
+`templates/cpp/gitignore` to `.gitignore`: it ignores everything except
+sources, headers, Makefiles, and notes.
 
 ## A first practice loop
 
 1. Open `hello.cpp` with Space Space and run it with Space m r. Press Esc twice
    and Ctrl+k to return to the file.
 2. Remove a semicolon and press Space m b. Use `]q` to reach the error, fix
-   it, and run again.
+   it, and run again. Then write `unsigned int count = -1;`: the sign
+   conversion is flagged while you type and again in the build list.
 3. Declare `int values[3];` and assign `values[3] = 1;`. Run the program and
    read the AddressSanitizer report down to the `#0` line naming your file.
    Then try `std::vector<int> items(3);` and `items[3] = 1;`: Ubuntu's g++

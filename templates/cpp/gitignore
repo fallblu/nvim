@@ -1,0 +1,9 @@
+# Built programs have no extension, so ignore everything and list what to keep.
+*
+!*/
+!*.cpp
+!*.h
+!*.hpp
+!Makefile
+!*.md
+!.gitignore
